@@ -2,6 +2,31 @@
   "nodes": [
     {
       "parameters": {
+        "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
+        "text": "Error parsing your attached file. Ensure it is in .pdf format.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "9e6625f9-988b-4fe3-b1e5-b9efd4727709",
+      "name": "Send PDF Error Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        34176,
+        101312
+      ],
+      "webhookId": "39b080ba-2187-40c4-a3d2-88e49ee5bdf5",
+      "credentials": {
+        "telegramApi": {
+          "id": "C4WFoCaBCTYvtSS5",
+          "name": "AI Agent Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
         "updates": [
           "message",
           "callback_query"
@@ -10,13 +35,13 @@
           "download": true
         }
       },
-      "id": "af106e1c-4a41-4fa2-b47a-9cfa77ffbb5b",
+      "id": "9905baa8-4d36-4100-a1cf-3a6512cd4bdb",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.1,
       "position": [
-        24096,
-        87952
+        31104,
+        101216
       ],
       "webhookId": "b1af7cf5-ac6a-49ee-b2b3-b16fd40009a3",
       "credentials": {
@@ -41,13 +66,13 @@
           ]
         }
       },
-      "id": "deebae30-32d7-4377-a39f-ac45abe9af11",
+      "id": "22a0637e-e595-4bda-be89-bb33cee25ed5",
       "name": "Supabase Fetch by ID",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        24320,
-        87952
+        31328,
+        101216
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -61,13 +86,13 @@
       "parameters": {
         "jsCode": "const raw = $('Supabase Fetch').first().json.master_profile;\nlet profile = null;\ntry { profile = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { profile = null; }\n\nconst missing = [];\nconst addMissing = (label) => { if (!missing.includes(label)) missing.push(label); };\nconst hasProfile = profile && typeof profile === 'object';\n\nif (!hasProfile) {\n  addMissing('your resume data');\n} else {\n  if (!profile.name || !String(profile.name).trim()) addMissing('your full name');\n  const contact = profile.contact || {};\n  if (!contact.email && !contact.phone) addMissing('a contact email or phone number');\n  if (!profile.summary || !String(profile.summary).trim()) addMissing('a short professional summary');\n  const hasSkills = Array.isArray(profile.skills) && profile.skills.some((s) => {\n    const items = Array.isArray(s?.items) ? s.items.join(', ') : (s?.items ?? s?.skills);\n    return items && String(items).trim();\n  });\n  if (!hasSkills) addMissing('your key skills');\n  if (!Array.isArray(profile.education) || profile.education.length === 0) addMissing('your education details');\n  if (!Array.isArray(profile.work_experience) || profile.work_experience.length === 0) addMissing('your work experience');\n  if (!Array.isArray(profile.projects) || profile.projects.length === 0) addMissing('your projects');\n}\n\nconst isSufficient = missing.length === 0;\nlet prompt = '';\nif (!isSufficient) {\n  if (!hasProfile) {\n    prompt = 'Your profile is currently empty. Please upload your resume PDF or send your professional details (starting with your full name) to establish your baseline profile.';\n  } else {\n    prompt = 'Your profile is incomplete. Please provide your ' + missing[0] + ' next to complete your profile. You can paste the text here or upload your resume PDF.';\n  }\n}\n\nreturn [{ json: { ...$input.item.json, profile_status: { isSufficient, missing, prompt } } }];"
       },
-      "id": "50f09c25-4159-408d-8777-6ee7c5a4e51e",
+      "id": "584c1458-9198-44b4-90ad-4f89baf218c6",
       "name": "Assess Master Profile",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25440,
-        87952
+        32448,
+        101216
       ]
     },
     {
@@ -585,26 +610,26 @@
         },
         "options": {}
       },
-      "id": "9335783f-554f-4d31-b479-395383ce91d6",
+      "id": "21a3f316-4e5b-4196-918a-46e268d5d9ea",
       "name": "Command Router",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        25664,
-        87760
+        32672,
+        101024
       ]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.item.json.master_profile\n  ?? $('Supabase Fetch').first().json.master_profile;\n\nif (!raw) return [{ json: { text: \"\ud83d\udced No profile found. Send me your resume PDF or tell me about yourself!\" } }];\n\nlet p;\ntry { p = typeof raw === 'string' ? JSON.parse(raw) : raw; }\ncatch(e) { return [{ json: { text: \"\u274c Could not read profile data. Try uploading your resume PDF again.\" } }]; }\n\nif (!p || typeof p !== 'object') return [{ json: { text: \"\ud83d\udced No profile found. Send me your resume PDF!\" } }];\n\nconst hasData = p.name || p.summary || p.tagline\n  || (p.skills && p.skills.length > 0)\n  || (p.work_experience && p.work_experience.length > 0)\n  || (p.education && p.education.length > 0)\n  || (p.projects && p.projects.length > 0)\n  || (p.certifications && p.certifications.length > 0)\n  || (p.contact && (p.contact.email || p.contact.phone));\n\nif (!hasData) return [{ json: { text: \"\ud83d\udced Your profile appears empty. Please upload your resume PDF or tell me your details!\" } }];\n\nlet msg = `<b>Master Resume Profile</b>\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n`;\n\nif (p.name) msg += `<b>${p.name}</b>\\n`;\nif (p.tagline) msg += `<i>${p.tagline}</i>\\n`;\nif (p.name || p.tagline) msg += `\\n`;\n\nif (p.contact) {\n  const c = p.contact;\n  const hasContact = c.email || c.phone || c.linkedin_display || c.linkedin_url || c.github_display || c.github_url || c.portfolio_display || c.portfolio_url;\n  if (hasContact) {\n    msg += `<b>Contact Details</b>\\n`;\n    if (c.email) msg += `  Email: ${c.email}\\n`;\n    if (c.phone) msg += `  Phone: ${c.phone}\\n`;\n    if (c.linkedin_display || c.linkedin_url) {\n      if (c.linkedin_display && c.linkedin_url && c.linkedin_display !== c.linkedin_url) msg += `  LinkedIn: ${c.linkedin_display} (${c.linkedin_url})\\n`;\n      else msg += `  LinkedIn: ${c.linkedin_url || c.linkedin_display}\\n`;\n    }\n    if (c.github_display || c.github_url) {\n      if (c.github_display && c.github_url && c.github_display !== c.github_url) msg += `  GitHub: ${c.github_display} (${c.github_url})\\n`;\n      else msg += `  GitHub: ${c.github_url || c.github_display}\\n`;\n    }\n    if (c.portfolio_display || c.portfolio_url) {\n      if (c.portfolio_display && c.portfolio_url && c.portfolio_display !== c.portfolio_url) msg += `  Portfolio: ${c.portfolio_display} (${c.portfolio_url})\\n`;\n      else msg += `  Portfolio: ${c.portfolio_url || c.portfolio_display}\\n`;\n    }\n    msg += `\\n`;\n  }\n}\nif (p.summary) msg += `<b>Professional Summary</b>\\n${p.summary}\\n\\n`;\n\nif (p.education && p.education.length > 0) {\n  msg += `<b>Education</b>\\n`;\n  p.education.forEach(e => {\n    msg += `    - <b>${e.degree}</b>\\n    ${e.institution}\\n`;\n    if (e.score) msg += `    Score: ${e.score}\\n`;\n    if (e.year) msg += `    Year: ${e.year}\\n`;\n  });\n  msg += `\\n`;\n}\n\nif (p.work_experience && p.work_experience.length > 0) {\n  msg += `<b>Work Experience</b>\\n`;\n  p.work_experience.forEach(w => {\n    msg += `\\n  <b>${w.title}</b> at ${w.company}`;\n    if (w.location) msg += `, ${w.location}`;\n    msg += `\\n`;\n    if (w.start_date) msg += `  <i>${w.start_date}${w.end_date ? ' \u2013 ' + w.end_date : ' \u2013 Present'}</i>\\n`;\n    if (w.bullet_points && w.bullet_points.length > 0)\n      w.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.projects && p.projects.length > 0) {\n  msg += `<b>Projects</b>\\n`;\n  p.projects.forEach(proj => {\n    msg += `\\n  <b>${proj.name}</b>\\n`;\n    if (proj.tech_stack) msg += `  <i>${proj.tech_stack}</i>\\n`;\n    if (proj.duration) msg += `  <i>${proj.duration}</i>\\n`;\n    if (proj.link_display || proj.link_url) {\n      if (proj.link_display && proj.link_url && proj.link_display !== proj.link_url) msg += `  \ud83d\udd17 ${proj.link_display} (${proj.link_url})\\n`;\n      else msg += `  \ud83d\udd17 ${proj.link_url || proj.link_display}\\n`;\n    }\n    if (proj.bullet_points && proj.bullet_points.length > 0)\n      proj.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.skills && p.skills.length > 0) {\n  msg += `<b>Technical Skills</b>\\n`;\n  p.skills.forEach(s => msg += `    - <b>${s.category || 'Skill'}:</b> ${s.items || s}\\n`);\n  msg += `\\n`;\n}\n\nif (p.certifications && p.certifications.length > 0) {\n  msg += `<b>Certifications</b>\\n`;\n  p.certifications.forEach(cert => {\n    msg += `    - <b>${cert.name}</b>\\n    ${cert.issuer}`;\n    if (cert.year) msg += ` (${cert.year})`;\n    msg += `\\n`;\n  });\n  msg += `\\n`;\n}\n\nif (msg.length <= 4096) return [{ json: { text: msg, isLast: true } }];\nconst chunks = []; let current = '';\nfor (const line of msg.split('\\n')) {\n  if ((current + line + '\\n').length > 4000) { chunks.push(current.trim()); current = line + '\\n'; }\n  else current += line + '\\n';\n}\nif (current.trim()) chunks.push(current.trim());\nreturn chunks.map((text, index) => ({ json: { text, isLast: index === chunks.length - 1 } }));"
+        "jsCode": "const raw = $input.item.json.master_profile\n  ?? $('Supabase Fetch').first().json.master_profile;\n\nif (!raw) return [{ json: { text: \"📭 No profile found. Send me your resume PDF or tell me about yourself!\" } }];\n\nlet p;\ntry { p = typeof raw === 'string' ? JSON.parse(raw) : raw; }\ncatch(e) { return [{ json: { text: \"❌ Could not read profile data. Try uploading your resume PDF again.\" } }]; }\n\nif (!p || typeof p !== 'object') return [{ json: { text: \"📭 No profile found. Send me your resume PDF!\" } }];\n\nconst hasData = p.name || p.summary || p.tagline\n  || (p.skills && p.skills.length > 0)\n  || (p.work_experience && p.work_experience.length > 0)\n  || (p.education && p.education.length > 0)\n  || (p.projects && p.projects.length > 0)\n  || (p.certifications && p.certifications.length > 0)\n  || (p.contact && (p.contact.email || p.contact.phone));\n\nif (!hasData) return [{ json: { text: \"📭 Your profile appears empty. Please upload your resume PDF or tell me your details!\" } }];\n\nlet msg = `<b>Master Resume Profile</b>\\n━━━━━━━━━━━━━━━━━━━━\\n\\n`;\n\nif (p.name) msg += `<b>${p.name}</b>\\n`;\nif (p.tagline) msg += `<i>${p.tagline}</i>\\n`;\nif (p.name || p.tagline) msg += `\\n`;\n\nif (p.contact) {\n  const c = p.contact;\n  const hasContact = c.email || c.phone || c.linkedin_display || c.linkedin_url || c.github_display || c.github_url || c.portfolio_display || c.portfolio_url;\n  if (hasContact) {\n    msg += `<b>Contact Details</b>\\n`;\n    if (c.email) msg += `  Email: ${c.email}\\n`;\n    if (c.phone) msg += `  Phone: ${c.phone}\\n`;\n    if (c.linkedin_display || c.linkedin_url) {\n      if (c.linkedin_display && c.linkedin_url && c.linkedin_display !== c.linkedin_url) msg += `  LinkedIn: ${c.linkedin_display} (${c.linkedin_url})\\n`;\n      else msg += `  LinkedIn: ${c.linkedin_url || c.linkedin_display}\\n`;\n    }\n    if (c.github_display || c.github_url) {\n      if (c.github_display && c.github_url && c.github_display !== c.github_url) msg += `  GitHub: ${c.github_display} (${c.github_url})\\n`;\n      else msg += `  GitHub: ${c.github_url || c.github_display}\\n`;\n    }\n    if (c.portfolio_display || c.portfolio_url) {\n      if (c.portfolio_display && c.portfolio_url && c.portfolio_display !== c.portfolio_url) msg += `  Portfolio: ${c.portfolio_display} (${c.portfolio_url})\\n`;\n      else msg += `  Portfolio: ${c.portfolio_url || c.portfolio_display}\\n`;\n    }\n    msg += `\\n`;\n  }\n}\nif (p.summary) msg += `<b>Professional Summary</b>\\n${p.summary}\\n\\n`;\n\nif (p.education && p.education.length > 0) {\n  msg += `<b>Education</b>\\n`;\n  p.education.forEach(e => {\n    msg += `    - <b>${e.degree}</b>\\n    ${e.institution}\\n`;\n    if (e.score) msg += `    Score: ${e.score}\\n`;\n    if (e.year) msg += `    Year: ${e.year}\\n`;\n  });\n  msg += `\\n`;\n}\n\nif (p.work_experience && p.work_experience.length > 0) {\n  msg += `<b>Work Experience</b>\\n`;\n  p.work_experience.forEach(w => {\n    msg += `\\n  <b>${w.title}</b> at ${w.company}`;\n    if (w.location) msg += `, ${w.location}`;\n    msg += `\\n`;\n    if (w.start_date) msg += `  <i>${w.start_date}${w.end_date ? ' – ' + w.end_date : ' – Present'}</i>\\n`;\n    if (w.bullet_points && w.bullet_points.length > 0)\n      w.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.projects && p.projects.length > 0) {\n  msg += `<b>Projects</b>\\n`;\n  p.projects.forEach(proj => {\n    msg += `\\n  <b>${proj.name}</b>\\n`;\n    if (proj.tech_stack) msg += `  <i>${proj.tech_stack}</i>\\n`;\n    if (proj.duration) msg += `  <i>${proj.duration}</i>\\n`;\n    if (proj.link_display || proj.link_url) {\n      if (proj.link_display && proj.link_url && proj.link_display !== proj.link_url) msg += `  🔗 ${proj.link_display} (${proj.link_url})\\n`;\n      else msg += `  🔗 ${proj.link_url || proj.link_display}\\n`;\n    }\n    if (proj.bullet_points && proj.bullet_points.length > 0)\n      proj.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.skills && p.skills.length > 0) {\n  msg += `<b>Technical Skills</b>\\n`;\n  p.skills.forEach(s => msg += `    - <b>${s.category || 'Skill'}:</b> ${s.items || s}\\n`);\n  msg += `\\n`;\n}\n\nif (p.certifications && p.certifications.length > 0) {\n  msg += `<b>Certifications</b>\\n`;\n  p.certifications.forEach(cert => {\n    msg += `    - <b>${cert.name}</b>\\n    ${cert.issuer}`;\n    if (cert.year) msg += ` (${cert.year})`;\n    msg += `\\n`;\n  });\n  msg += `\\n`;\n}\n\nif (msg.length <= 4096) return [{ json: { text: msg, isLast: true } }];\nconst chunks = []; let current = '';\nfor (const line of msg.split('\\n')) {\n  if ((current + line + '\\n').length > 4000) { chunks.push(current.trim()); current = line + '\\n'; }\n  else current += line + '\\n';\n}\nif (current.trim()) chunks.push(current.trim());\nreturn chunks.map((text, index) => ({ json: { text, isLast: index === chunks.length - 1 } }));"
       },
-      "id": "f3973b26-91d9-4d57-a4ba-f0fd3c90a9c3",
+      "id": "b6909a03-195f-4b97-966a-8a70613ed7cd",
       "name": "Format Profile View",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25952,
-        87760
+        32960,
+        100992
       ]
     },
     {
@@ -637,13 +662,13 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "f4217746-e590-4f27-b481-b693fd80f038",
+      "id": "b13483bc-8c6a-4f9d-a086-e55fd892f8ef",
       "name": "Telegram View Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26240,
-        87760
+        33248,
+        100992
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -655,28 +680,28 @@
     },
     {
       "parameters": {
-        "jsCode": "const msg = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : ($('Telegram Trigger').item.json.message.text || '');\nconst isOptimized = msg.toLowerCase().startsWith('/downloadoptimized');\nconst rawTailored = $('Supabase Fetch').first().json.tailored_profile;\nconst rawMaster = $('Supabase Fetch').first().json.master_profile;\nconst rawProfile = isOptimized ? rawTailored : rawMaster;\n\nif (!rawProfile) {\n  return [{\n    json: {\n      text: isOptimized\n        ? \"\ud83d\udced No optimized resume yet. Use \\`/optimize [paste JD here]\\` to create one!\"\n        : \"\ud83d\udced No profile found. Please upload your resume PDF first!\"\n    }\n  }];\n}\nconst p = typeof rawProfile === 'string' ? JSON.parse(rawProfile) : rawProfile;\n\nfunction esc(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\textbackslash{}')\n    .replace(/([&%$#{}])/g, '\\\\$1')\n    .replace(/~/g, '\\\\textasciitilde{}')\n    .replace(/\\^/g, '\\\\textasciicircum{}')\n    .replace(/_/g, '\\\\_');\n}\n\nfunction url(str) {\n  if (!str) return '';\n  // Only encode characters that would actually break LaTeX href parsing.\n  // Do NOT apply esc() to URLs \u2014 it breaks underscores and # anchors.\n  return String(str).replace(/%/g, '\\\\%').replace(/\\\\/g, '/');\n}\n\n\n\n\nfunction extractUrls(text) {\n  if (!text) return [];\n  const regex = /(?:https?:\\/\\/|www\\.)[^\\s,\\|'\"]+|[a-zA-Z0-9.-]+\\.(?:com|app|net|io|me|dev|tech|co|org)(?:\\/[^\\s,\\|'\"]*)?/gi;\n  return text.match(regex) || [];\n}\n\nfunction getValidUrl(urlStr, displayStr) {\n  const urls = [];\n  if (urlStr) urls.push(...extractUrls(urlStr));\n  if (urls.length === 0 && displayStr) urls.push(...extractUrls(displayStr));\n  if (urls.length > 0) {\n      let u = urls[0];\n      if (!u.startsWith('http')) u = 'https://' + u;\n      return u;\n  }\n  return null;\n}\n\nconst c = p.contact || {};\n\nconst headerLeft = [];\nconst headerRight = [];\n\nheaderLeft.push(`{\\\\LARGE \\\\textbf{${esc(p.name)}}}`);\nif (p.tagline) {\n  headerLeft.push(`\\\\textit{${esc(p.tagline.substring(0, 100))}}`);\n}\n\nif (c.email) {\n  headerRight.push(`\\\\href{mailto:${url(c.email)}}{${esc(c.email)}}`);\n}\nif (c.phone) {\n  const cleanPhone = c.phone.replace(/[^+\\d]/g, '');\n  headerRight.push(`\\\\href{tel:${cleanPhone}}{${esc(c.phone)}}`);\n}\nif (c.linkedin_url || c.linkedin_display) {\n  const display = c.linkedin_display || 'LinkedIn';\n  const u = getValidUrl(c.linkedin_url, c.linkedin_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.github_url || c.github_display) {\n  const display = c.github_display || 'GitHub';\n  const u = getValidUrl(c.github_url, c.github_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.portfolio_url || c.portfolio_display) {\n  const display = c.portfolio_display || 'Portfolio';\n  const u = getValidUrl(c.portfolio_url, c.portfolio_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\n\nconst rows = Math.max(headerLeft.length, headerRight.length);\nlet headerBlock = '\\\\begin{tabular*}{\\\\textwidth}{l@{\\\\extracolsep{\\\\fill}}r}\\n';\nfor (let i = 0; i < rows; i++) {\n  const left = headerLeft[i] || '';\n  const right = headerRight[i] || '';\n  headerBlock += `  ${left} & ${right} \\\\\\\\\\n`;\n}\nheaderBlock += '\\\\end{tabular*}\\n';\n\n\nlet eduBlock = '';\n(p.education || []).forEach(e => {\n  eduBlock += `  ${esc(e.degree)} & ${esc(e.institution)} & ${esc(e.score)} & ${esc(e.year)} \\\\\\\\\\n  \\\\hline\\n`;\n});\n\nlet expBlock = '';\n(p.work_experience || []).forEach(w => {\n  expBlock += `  \\\\resumeSubheading{${esc(w.title)}}{${esc(w.location)}}{${esc(w.company)}}{${esc(w.start_date)} -- ${esc(w.end_date || 'Present')}}\\n`;\n  expBlock += `  \\\\resumeItemListStart\\n`;\n  (w.bullet_points || []).forEach(b => { expBlock += `    \\\\item {${esc(b)}}\\n`; });\n  expBlock += `  \\\\resumeItemListEnd\\n`;\n});\n\nlet projBlock = '';\n(p.projects || []).forEach(proj => {\n  let lTex = '';\n  const urls = [];\n  if (proj.link_url) urls.push(...extractUrls(proj.link_url));\n  if (urls.length === 0 && proj.link_display) urls.push(...extractUrls(proj.link_display));\n  if (urls.length > 0) {\n    let liveDemo = null;\n    let github = null;\n    for (let u of urls) {\n      if (!u.startsWith('http')) u = 'https://' + u;\n      if (/github\\.com/i.test(u)) github = u;\n      else liveDemo = u;\n    }\n    if (liveDemo) lTex = `\\\\href{${url(liveDemo)}}{Live Demo}`;\n    else if (github) lTex = `\\\\href{${url(github)}}{GitHub}`;\n  }\n  projBlock += `  \\\\resumeProject{${esc(proj.name)}}{${esc(proj.tech_stack)}}{${esc(proj.duration)}}{${lTex}}\\n`;\n  projBlock += `  \\\\resumeItemListStart\\n`;\n  (proj.bullet_points || []).forEach(b => { projBlock += `    \\\\item {${esc(b)}}\\n`; });\n  projBlock += `  \\\\resumeItemListEnd\\n`;\n});\n\nlet skillBlock = '';\n(p.skills || []).forEach(s => {\n  let items = '';\n  if (Array.isArray(s.items)) items = s.items.join(', ');\n  else if (typeof s.items === 'string') items = s.items;\n  else if (s.skills) items = Array.isArray(s.skills) ? s.skills.join(', ') : s.skills;\n  if (!items || !items.trim()) return;\n  const cat = s.category || s.name || 'Skills';\n  skillBlock += `  \\\\resumeSubItem{${esc(cat)}}{${esc(items)}}\\n`;\n});\n\nlet certBlock = '';\n(p.certifications || []).forEach(cert => {\n  certBlock += `  \\\\resumePOR{${esc(cert.issuer)}}{${esc(cert.name)}}{${esc(cert.year)}}\\n`;\n});\n\nconst tex = `\\\\documentclass[a4paper,11pt]{article}\n\\\\usepackage{latexsym}\n\\\\usepackage{xcolor}\n\\\\usepackage{float}\n\\\\usepackage{ragged2e}\n\\\\usepackage[empty]{fullpage}\n\\\\usepackage{wrapfig}\n\\\\usepackage{tabularx}\n\\\\usepackage{titlesec}\n\\\\usepackage{geometry}\n\\\\usepackage{marvosym}\n\\\\usepackage{verbatim}\n\\\\usepackage{enumitem}\n\\\\usepackage[hidelinks]{hyperref}\n\\\\usepackage{fancyhdr}\n\\\\usepackage{multicol}\n\\\\usepackage{graphicx}\n\\\\usepackage{cfr-lm}\n\\\\usepackage[T1]{fontenc}\n\\\\setlength{\\\\multicolsep}{0pt}\n\\\\pagestyle{fancy}\n\\\\fancyhf{}\n\\\\fancyfoot{}\n\\\\renewcommand{\\\\headrulewidth}{0pt}\n\\\\renewcommand{\\\\footrulewidth}{0pt}\n\\\\geometry{left=1.4cm, top=0.8cm, right=1.2cm, bottom=1cm}\n\\\\usepackage[most]{tcolorbox}\n\\\\tcbset{frame code={} center title, left=0pt, right=0pt, top=0pt, bottom=0pt, colback=gray!20, colframe=white, width=\\\\dimexpr\\\\textwidth\\\\relax, enlarge left by=-2mm, boxsep=4pt, arc=0pt, outer arc=0pt}\n\\\\urlstyle{same}\n\\\\raggedright\n\\\\setlength{\\\\tabcolsep}{0in}\n\\\\titleformat{\\\\section}{\\\\vspace{-4pt}\\\\scshape\\\\raggedright\\\\large}{}{0em}{}[\\\\color{black}\\\\titlerule \\\\vspace{-7pt}]\n\\\\newcommand{\\\\resumeItem}[2]{\\\\item{\\\\textbf{#1}{: #2 \\\\vspace{-0.5mm}}}}\n\\\\newcommand{\\\\resumePOR}[3]{\\\\vspace{0.5mm}\\\\item\\\\begin{tabular*}{0.97\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1}: #2 & \\\\textit{\\\\small{#3}}\\\\end{tabular*}\\\\vspace{-2mm}}\n\\\\newcommand{\\\\resumeSubheading}[4]{\\\\vspace{0.5mm}\\\\item\\\\begin{tabular*}{0.98\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1} & \\\\textit{\\\\footnotesize{#4}} \\\\\\\\ \\\\textit{\\\\footnotesize{#3}} & \\\\footnotesize{#2}\\\\\\\\\\\\end{tabular*}\\\\vspace{-2.4mm}}\n\\\\newcommand{\\\\resumeProject}[4]{\\\\vspace{0.5mm}\\\\item\\\\begin{tabular*}{0.98\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1} & \\\\textit{\\\\footnotesize{#3}} \\\\\\\\ \\\\footnotesize{\\\\textit{#2}} & \\\\footnotesize{#4}\\\\end{tabular*}\\\\vspace{-2.4mm}}\n\\\\newcommand{\\\\resumeSubItem}[2]{\\\\resumeItem{#1}{#2}\\\\vspace{-4pt}}\n\\\\renewcommand{\\\\labelitemi}{$\\\\vcenter{\\\\hbox{\\\\tiny$\\\\bullet$}}$}\n\\\\newcommand{\\\\resumeSubHeadingListStart}{\\\\begin{itemize}[leftmargin=*,labelsep=0mm]}\n\\\\newcommand{\\\\resumeHeadingSkillStart}{\\\\begin{itemize}[leftmargin=*,itemsep=1.7mm, rightmargin=2ex]}\n\\\\newcommand{\\\\resumeItemListStart}{\\\\begin{justify}\\\\begin{itemize}[leftmargin=3ex, rightmargin=2ex, noitemsep,labelsep=1.2mm,itemsep=0mm]\\\\small}\n\\\\newcommand{\\\\resumeSubHeadingListEnd}{\\\\end{itemize}\\\\vspace{2mm}}\n\\\\newcommand{\\\\resumeHeadingSkillEnd}{\\\\end{itemize}\\\\vspace{-2mm}}\n\\\\newcommand{\\\\resumeItemListEnd}{\\\\end{itemize}\\\\end{justify}\\\\vspace{-2mm}}\n\\\\newcolumntype{L}{>{\\\\raggedright\\\\arraybackslash}X}\n\\\\newcolumntype{R}{>{\\\\raggedleft\\\\arraybackslash}X}\n\\\\newcolumntype{C}{>{\\\\centering\\\\arraybackslash}X}\n\n\\\\begin{document}\n\\\\fontfamily{cmr}\\\\selectfont\n\n${headerBlock}\n\n\\\\section{Profile Summary}\n\\\\vspace{1mm}\n\\\\small{${esc(p.summary)}}\n\\\\vspace{1mm}\n\n\\\\section{Education}\n\\\\setlength{\\\\tabcolsep}{5pt}\n{\\\\small \\\\begin{tabularx}{\\\\linewidth}{|L|L|c|c|}\n  \\\\hline\n  \\\\textbf{Degree/Certificate} & \\\\textbf{Institute/Board} & \\\\textbf{Score} & \\\\textbf{Year}\\\\\\\\\n  \\\\hline\n${eduBlock}\\\\end{tabularx}}\n\\\\vspace{2mm}\n\n\\\\section{Experience}\n\\\\resumeSubHeadingListStart\n${expBlock}\\\\resumeSubHeadingListEnd\n\\\\vspace{-5.5mm}\n\n\\\\section{Projects}\n\\\\resumeSubHeadingListStart\n${projBlock}\\\\resumeSubHeadingListEnd\n\\\\vspace{-5.5mm}\n\n\\\\section{Technical Skills}\n\\\\resumeHeadingSkillStart\n${skillBlock}\\\\resumeHeadingSkillEnd\n\n\\\\section{Certifications}\n\\\\vspace{-0.2mm}\n\\\\resumeSubHeadingListStart\n${certBlock}\\\\resumeSubHeadingListEnd\n\n\\\\end{document}`;\n\nreturn [{\n  json: { success: true, tex_b64: Buffer.from(tex).toString('base64') },\n  binary: {\n    tex_file: {\n      data: Buffer.from(tex).toString('base64'),\n      mimeType: 'application/x-tex',\n      fileName: `resume_${($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id)}.tex`\n    }\n  }\n}];"
+        "jsCode": "const msg = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : ($('Telegram Trigger').item.json.message.text || '');\nconst isOptimized = msg.toLowerCase().startsWith('/downloadoptimized');\nconst rawTailored = $('Supabase Fetch').first().json.tailored_profile;\nconst rawMaster = $('Supabase Fetch').first().json.master_profile;\nconst rawProfile = isOptimized ? rawTailored : rawMaster;\n\nif (!rawProfile) {\n  return [{\n    json: {\n      text: isOptimized\n        ? \"📭 No optimized resume yet. Use \\`/optimize [paste JD here]\\` to create one!\"\n        : \"📭 No profile found. Please upload your resume PDF first!\"\n    }\n  }];\n}\nconst p = typeof rawProfile === 'string' ? JSON.parse(rawProfile) : rawProfile;\n\nfunction esc(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\textbackslash{}')\n    .replace(/([&%$#{}])/g, '\\\\$1')\n    .replace(/~/g, '\\\\textasciitilde{}')\n    .replace(/\\^/g, '\\\\textasciicircum{}')\n    .replace(/_/g, '\\\\_');\n}\n\nfunction url(str) {\n  if (!str) return '';\n  // Only encode characters that would actually break LaTeX href parsing.\n  // Do NOT apply esc() to URLs — it breaks underscores and # anchors.\n  return String(str).replace(/%/g, '\\\\%').replace(/\\\\/g, '/');\n}\n\n\n\n\nfunction extractUrls(text) {\n  if (!text) return [];\n  const regex = /(?:https?:\\/\\/|www\\.)[^\\s,\\|'\"]+|[a-zA-Z0-9.-]+\\.(?:com|app|net|io|me|dev|tech|co|org)(?:\\/[^\\s,\\|'\"]*)?/gi;\n  return text.match(regex) || [];\n}\n\nfunction getValidUrl(urlStr, displayStr) {\n  const urls = [];\n  if (urlStr) urls.push(...extractUrls(urlStr));\n  if (urls.length === 0 && displayStr) urls.push(...extractUrls(displayStr));\n  if (urls.length > 0) {\n      let u = urls[0];\n      if (!u.startsWith('http')) u = 'https://' + u;\n      return u;\n  }\n  return null;\n}\n\nconst c = p.contact || {};\n\nconst headerLeft = [];\nconst headerRight = [];\n\nheaderLeft.push(`{\\\\LARGE \\\\textbf{${esc(p.name)}}}`);\nif (p.tagline) {\n  headerLeft.push(`\\\\textit{${esc(p.tagline.substring(0, 100))}}`);\n}\n\nif (c.email) {\n  headerRight.push(`\\\\href{mailto:${url(c.email)}}{${esc(c.email)}}`);\n}\nif (c.phone) {\n  const cleanPhone = c.phone.replace(/[^+\\d]/g, '');\n  headerRight.push(`\\\\href{tel:${cleanPhone}}{${esc(c.phone)}}`);\n}\nif (c.linkedin_url || c.linkedin_display) {\n  const display = c.linkedin_display || 'LinkedIn';\n  const u = getValidUrl(c.linkedin_url, c.linkedin_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.github_url || c.github_display) {\n  const display = c.github_display || 'GitHub';\n  const u = getValidUrl(c.github_url, c.github_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.portfolio_url || c.portfolio_display) {\n  const display = c.portfolio_display || 'Portfolio';\n  const u = getValidUrl(c.portfolio_url, c.portfolio_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\n\nconst rows = Math.max(headerLeft.length, headerRight.length);\nlet headerBlock = '\\\\begin{tabular*}{\\\\textwidth}{l@{\\\\extracolsep{\\\\fill}}r}\\n';\nfor (let i = 0; i < rows; i++) {\n  const left = headerLeft[i] || '';\n  const right = headerRight[i] || '';\n  headerBlock += `  ${left} & ${right} \\\\\\\\\\n`;\n}\nheaderBlock += '\\\\end{tabular*}\\n';\n\n\nlet eduBlock = '';\n(p.education || []).forEach(e => {\n  eduBlock += `  ${esc(e.degree)} & ${esc(e.institution)} & ${esc(e.score)} & ${esc(e.year)} \\\\\\\\\\n  \\\\hline\\n`;\n});\n\nlet expBlock = '';\n(p.work_experience || []).forEach(w => {\n  expBlock += `  \\\\resumeSubheading{${esc(w.title)}}{${esc(w.location)}}{${esc(w.company)}}{${esc(w.start_date)} -- ${esc(w.end_date || 'Present')}}\\n`;\n  expBlock += `  \\\\resumeItemListStart\\n`;\n  (w.bullet_points || []).forEach(b => { expBlock += `    \\\\item {${esc(b)}}\\n`; });\n  expBlock += `  \\\\resumeItemListEnd\\n`;\n});\n\nlet projBlock = '';\n(p.projects || []).forEach(proj => {\n  let lTex = '';\n  const urls = [];\n  if (proj.link_url) urls.push(...extractUrls(proj.link_url));\n  if (urls.length === 0 && proj.link_display) urls.push(...extractUrls(proj.link_display));\n  if (urls.length > 0) {\n    let liveDemo = null;\n    let github = null;\n    for (let u of urls) {\n      if (!u.startsWith('http')) u = 'https://' + u;\n      if (/github\\.com/i.test(u)) github = u;\n      else liveDemo = u;\n    }\n    if (liveDemo) lTex = `\\\\href{${url(liveDemo)}}{Live Demo}`;\n    else if (github) lTex = `\\\\href{${url(github)}}{GitHub}`;\n  }\n  projBlock += `  \\\\resumeProject{${esc(proj.name)}}{${esc(proj.tech_stack)}}{${esc(proj.duration)}}{${lTex}}\\n`;\n  projBlock += `  \\\\resumeItemListStart\\n`;\n  (proj.bullet_points || []).forEach(b => { projBlock += `    \\\\item {${esc(b)}}\\n`; });\n  projBlock += `  \\\\resumeItemListEnd\\n`;\n});\n\nlet skillBlock = '';\n(p.skills || []).forEach(s => {\n  let items = '';\n  if (Array.isArray(s.items)) items = s.items.join(', ');\n  else if (typeof s.items === 'string') items = s.items;\n  else if (s.skills) items = Array.isArray(s.skills) ? s.skills.join(', ') : s.skills;\n  if (!items || !items.trim()) return;\n  const cat = s.category || s.name || 'Skills';\n  skillBlock += `  \\\\resumeSubItem{${esc(cat)}}{${esc(items)}}\\n`;\n});\n\nlet certBlock = '';\n(p.certifications || []).forEach(cert => {\n  certBlock += `  \\\\resumePOR{${esc(cert.issuer)}}{${esc(cert.name)}}{${esc(cert.year)}}\\n`;\n});\n\nconst tex = `\\\\documentclass[a4paper,11pt]{article}\n\\\\usepackage{latexsym}\n\\\\usepackage{xcolor}\n\\\\usepackage{float}\n\\\\usepackage{ragged2e}\n\\\\usepackage[empty]{fullpage}\n\\\\usepackage{wrapfig}\n\\\\usepackage{tabularx}\n\\\\usepackage{titlesec}\n\\\\usepackage{geometry}\n\\\\usepackage{marvosym}\n\\\\usepackage{verbatim}\n\\\\usepackage{enumitem}\n\\\\usepackage[hidelinks]{hyperref}\n\\\\usepackage{fancyhdr}\n\\\\usepackage{multicol}\n\\\\usepackage{graphicx}\n\\\\usepackage{cfr-lm}\n\\\\usepackage[T1]{fontenc}\n\\\\setlength{\\\\multicolsep}{0pt}\n\\\\pagestyle{fancy}\n\\\\fancyhf{}\n\\\\fancyfoot{}\n\\\\renewcommand{\\\\headrulewidth}{0pt}\n\\\\renewcommand{\\\\footrulewidth}{0pt}\n\\\\geometry{left=1.4cm, top=0.8cm, right=1.2cm, bottom=1cm}\n\\\\usepackage[most]{tcolorbox}\n\\\\tcbset{frame code={} center title, left=0pt, right=0pt, top=0pt, bottom=0pt, colback=gray!20, colframe=white, width=\\\\dimexpr\\\\textwidth\\\\relax, enlarge left by=-2mm, boxsep=4pt, arc=0pt, outer arc=0pt}\n\\\\urlstyle{same}\n\\\\raggedright\n\\\\setlength{\\\\tabcolsep}{0in}\n\\\\titleformat{\\\\section}{\\\\vspace{-4pt}\\\\scshape\\\\raggedright\\\\large}{}{0em}{}[\\\\color{black}\\\\titlerule \\\\vspace{-7pt}]\n\\\\newcommand{\\\\resumeItem}[2]{\\\\item{\\\\textbf{#1}{: #2 \\\\vspace{-0.5mm}}}}\n\\\\newcommand{\\\\resumePOR}[3]{\\\\vspace{0.5mm}\\\\item\\\\begin{tabular*}{0.97\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1}: #2 & \\\\textit{\\\\small{#3}}\\\\end{tabular*}\\\\vspace{-2mm}}\n\\\\newcommand{\\\\resumeSubheading}[4]{\\\\vspace{0.5mm}\\\\item\\\\begin{tabular*}{0.98\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1} & \\\\textit{\\\\footnotesize{#4}} \\\\\\\\ \\\\textit{\\\\footnotesize{#3}} & \\\\footnotesize{#2}\\\\\\\\\\\\end{tabular*}\\\\vspace{-2.4mm}}\n\\\\newcommand{\\\\resumeProject}[4]{\\\\vspace{0.5mm}\\\\item\\\\begin{tabular*}{0.98\\\\textwidth}[t]{l@{\\\\extracolsep{\\\\fill}}r}\\\\textbf{#1} & \\\\textit{\\\\footnotesize{#3}} \\\\\\\\ \\\\footnotesize{\\\\textit{#2}} & \\\\footnotesize{#4}\\\\end{tabular*}\\\\vspace{-2.4mm}}\n\\\\newcommand{\\\\resumeSubItem}[2]{\\\\resumeItem{#1}{#2}\\\\vspace{-4pt}}\n\\\\renewcommand{\\\\labelitemi}{$\\\\vcenter{\\\\hbox{\\\\tiny$\\\\bullet$}}$}\n\\\\newcommand{\\\\resumeSubHeadingListStart}{\\\\begin{itemize}[leftmargin=*,labelsep=0mm]}\n\\\\newcommand{\\\\resumeHeadingSkillStart}{\\\\begin{itemize}[leftmargin=*,itemsep=1.7mm, rightmargin=2ex]}\n\\\\newcommand{\\\\resumeItemListStart}{\\\\begin{justify}\\\\begin{itemize}[leftmargin=3ex, rightmargin=2ex, noitemsep,labelsep=1.2mm,itemsep=0mm]\\\\small}\n\\\\newcommand{\\\\resumeSubHeadingListEnd}{\\\\end{itemize}\\\\vspace{2mm}}\n\\\\newcommand{\\\\resumeHeadingSkillEnd}{\\\\end{itemize}\\\\vspace{-2mm}}\n\\\\newcommand{\\\\resumeItemListEnd}{\\\\end{itemize}\\\\end{justify}\\\\vspace{-2mm}}\n\\\\newcolumntype{L}{>{\\\\raggedright\\\\arraybackslash}X}\n\\\\newcolumntype{R}{>{\\\\raggedleft\\\\arraybackslash}X}\n\\\\newcolumntype{C}{>{\\\\centering\\\\arraybackslash}X}\n\n\\\\begin{document}\n\\\\fontfamily{cmr}\\\\selectfont\n\n${headerBlock}\n\n\\\\section{Profile Summary}\n\\\\vspace{1mm}\n\\\\small{${esc(p.summary)}}\n\\\\vspace{1mm}\n\n\\\\section{Education}\n\\\\setlength{\\\\tabcolsep}{5pt}\n{\\\\small \\\\begin{tabularx}{\\\\linewidth}{|L|L|c|c|}\n  \\\\hline\n  \\\\textbf{Degree/Certificate} & \\\\textbf{Institute/Board} & \\\\textbf{Score} & \\\\textbf{Year}\\\\\\\\\n  \\\\hline\n${eduBlock}\\\\end{tabularx}}\n\\\\vspace{2mm}\n\n\\\\section{Experience}\n\\\\resumeSubHeadingListStart\n${expBlock}\\\\resumeSubHeadingListEnd\n\\\\vspace{-5.5mm}\n\n\\\\section{Projects}\n\\\\resumeSubHeadingListStart\n${projBlock}\\\\resumeSubHeadingListEnd\n\\\\vspace{-5.5mm}\n\n\\\\section{Technical Skills}\n\\\\resumeHeadingSkillStart\n${skillBlock}\\\\resumeHeadingSkillEnd\n\n\\\\section{Certifications}\n\\\\vspace{-0.2mm}\n\\\\resumeSubHeadingListStart\n${certBlock}\\\\resumeSubHeadingListEnd\n\n\\\\end{document}`;\n\nreturn [{\n  json: { success: true, tex_b64: Buffer.from(tex).toString('base64') },\n  binary: {\n    tex_file: {\n      data: Buffer.from(tex).toString('base64'),\n      mimeType: 'application/x-tex',\n      fileName: `resume_${($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id)}.tex`\n    }\n  }\n}];"
       },
-      "id": "10e52aa8-29c1-4242-85e2-eae6dce9b331",
+      "id": "55b5248d-749a-4812-810f-519b49872089",
       "name": "Generate LaTeX",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        26240,
-        89104
+        33248,
+        102464
       ]
     },
     {
       "parameters": {
         "command": "=echo \"{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}\" > /tmp/chat_{{ $execution.id }}\necho \"{{ $('Generate LaTeX').item.json.tex_b64 }}\" | base64 -d > /tmp/resume_{{ $execution.id }}.tex\ncd /tmp\npdflatex -interaction=nonstopmode resume_{{ $execution.id }}.tex > /tmp/compile_{{ $execution.id }}.log 2>&1\npdflatex -interaction=nonstopmode resume_{{ $execution.id }}.tex >> /tmp/compile_{{ $execution.id }}.log 2>&1\nif [ $? -eq 0 ] && [ -f resume_{{ $execution.id }}.pdf ]; then\n  echo \"SUCCESS\"\nelse\n  echo \"COMPILE_ERROR\"\n  cat /tmp/compile_{{ $execution.id }}.log\nfi"
       },
-      "id": "3c8f091e-be20-4e86-b73a-14301f4baebf",
+      "id": "3f2f50e1-ddfa-4d9b-8fae-bcdf47848de9",
       "name": "Write LaTeX File",
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        26880,
-        89008
+        33888,
+        102368
       ],
       "credentials": {
         "sshPassword": {
@@ -689,13 +714,13 @@
       "parameters": {
         "jsCode": "const b64 = $input.item.json.stdout.trim();\nconst chatId = ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id);\nreturn [{\n  json: { success: true },\n  binary: {\n    pdf_doc: {\n      data: b64,\n      mimeType: 'application/pdf',\n      fileName: `resume_${chatId}.pdf`\n    }\n  }\n}];"
       },
-      "id": "ef45c9c5-3f60-42cd-aa6a-8cebf13e578f",
+      "id": "acd00c43-4efa-424e-aa0a-a35e28b8c69b",
       "name": "Decode PDF Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        29104,
-        89104
+        36112,
+        102464
       ]
     },
     {
@@ -705,16 +730,17 @@
         "binaryData": true,
         "binaryPropertyName": "pdf_doc",
         "additionalFields": {
-          "caption": "Here is your compiled, ATS-friendly resume!"
+          "caption": "Here is your compiled, ATS-friendly resume!",
+          "parse_mode": "HTML"
         }
       },
-      "id": "97d64a51-44ab-431e-8e99-8e3f2a737199",
+      "id": "64b2041d-73ca-464f-87f0-215384c3b9b5",
       "name": "Send PDF (Telegram)",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        29328,
-        89104
+        36336,
+        102464
       ],
       "webhookId": "d53fcf7a-fa23-465d-a986-390f05874262",
       "credentials": {
@@ -728,13 +754,13 @@
       "parameters": {
         "jsCode": "const triggerItem = $('Telegram Trigger').item;\nreturn [{ json: $input.item.json, binary: triggerItem.binary }];"
       },
-      "id": "34bbf6bc-c325-43d8-84b3-b0946a46779e",
+      "id": "25c260ab-3511-47a6-afb9-a3ce16dafa7d",
       "name": "Reattach Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        26528,
-        88144
+        33536,
+        101376
       ]
     },
     {
@@ -742,39 +768,40 @@
         "operation": "pdf",
         "options": {}
       },
-      "id": "ec73d33e-46ba-4817-b557-4377ee831a2b",
+      "id": "ca9f831d-d681-4801-a2e7-268398704faa",
       "name": "Extract PDF Text",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
       "position": [
-        26880,
-        88144
-      ]
+        33888,
+        101376
+      ],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "jsCode": "return { json: { promptText: \"I have uploaded my existing resume. Please parse this unstructured text and carefully map it into my structured master_profile database object. Here is the raw PDF text:\\n\\n\" + $input.item.json.text } };"
       },
-      "id": "c16b4145-d137-4cb1-9ad0-d1fe79866384",
+      "id": "4eb5861c-826c-4916-8ef1-a47fda6d80f8",
       "name": "Format PDF Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        27168,
-        88144
+        34176,
+        101504
       ]
     },
     {
       "parameters": {
         "jsCode": "return { json: { promptText: $('Telegram Trigger').item.json.message.text } };"
       },
-      "id": "4e545e61-483b-4280-81ea-3941ffc3954f",
+      "id": "c34b5a2a-eeb8-4a40-9186-b03b6bf991c3",
       "name": "Format Chat Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        27168,
-        88736
+        34176,
+        102096
       ]
     },
     {
@@ -783,16 +810,16 @@
         "text": "={{ $json.promptText }}",
         "needsFallback": true,
         "options": {
-          "systemMessage": "You are an expert AI Resume assistant. Your job is to extract user information and perfectly structure it for a LaTeX compiler.\n\n[USER CONTEXT FROM DATABASE]\n{{ $('Supabase Fetch').first().json.master_profile ? (typeof $('Supabase Fetch').first().json.master_profile === 'string' ? JSON.stringify(JSON.parse($('Supabase Fetch').first().json.master_profile), null, 2) : JSON.stringify($('Supabase Fetch').first().json.master_profile, null, 2)) : 'NO_PROFILE' }}\n\n\n[CRITICAL DATA PRESERVATION & MERGING RULES]\n- The data under `[USER CONTEXT FROM DATABASE]` represents the user's current master profile and is your absolute baseline.\n- **INCREMENTAL MERGING**: When the user chats to update their profile, you MUST only modify, add, or delete the specific fields/facts mentioned in their message. \n- **PRESERVE UNCHANGED DATA**: All other existing fields, bullet points, sections, and values in the `master_profile` that are not explicitly updated or removed by the user's current message MUST be copied and preserved EXACTLY.\n- **NEVER WIPE OUT EXISTING DATA**: If the user corrects a single field (e.g., their name or email), you must update only that specific field in `master_profile` while keeping the rest of their profile (e.g. contact, education, work experience, projects, skills, and certifications) completely intact. Never return a profile that only contains the new information while omitting the old.\n- **CONVERSATIONAL PROFILE QUERIES**: If the user asks a question about their saved profile or resume details (e.g., \"What was my Semester 1 mark?\", \"Did I add Python to my skills?\", \"What is my GPA?\", etc.), you MUST analyze their saved profile under `[USER CONTEXT FROM DATABASE]` to answer their question.\n  - Set `profile_updated` to `false` (since no new information is being added or updated).\n  - In `chat_reply`, provide a clear, direct, and concise answer to their question in a highly natural, human voice.\n  - Return `master_profile` exactly as-is without any modifications.\n  - If the profile is empty or does not contain the requested information, explain politely and clearly what is missing or that the profile has not been created yet.\n\n\n\n[TAGLINE RULE]\nThe `tagline` MUST strictly be a short role title ONLY (e.g., 'Full-stack developer and UI/UX designer', 'Software Engineer', 'Data Scientist'). Do NOT write descriptive sentences or add extra context (e.g., no 'building production-ready applications'). Keep it under 50 characters.\n\n[HUMAN WRITING STYLE & TONE RULES (CRITICAL ANTI-AI CONSTRAINTS)]\nTo ensure all generated resume content (summaries, tagline, bullet points), cover letters, and chat responses look and sound like highly natural, professional, human-written text rather than robotic AI-generated text, you MUST adhere to the following rules:\n\n1. HARD CONSTRAINT ON EM DASHES AND DOUBLE HYPHENS:\n   - Your final output MUST contain absolutely no em dashes (\u2014), en dashes (\u2013), or double hyphens (--, ---) inside text sentences.\n   - Replace each one using a period (to start a new sentence), a comma (for tight asides), a colon (introducing explanation), or parentheses (for true asides), or restructure the sentence entirely.\n\n2. COPULA AVOIDANCE (USE SIMPLE \"IS/ARE/HAS/HAVE\"):\n   - Do not replace simple copulas with elaborate constructions like \"serves as\", \"stands as\", \"boasts\", \"features\", \"offers\", or \"marks\".\n   - Use simple verbs like \"is\", \"are\", \"has\", \"have\", or direct active verbs (e.g., instead of \"boasts 5 years of experience\", write \"has 5 years of experience\").\n\n3. BANNED \"AI VOCABULARY\" WORDS:\n   - Do not use high-frequency AI words. Banned list: align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate, intricacies, key (adjective), landscape (abstract), pivotal, showcase, tapestry, testament, underscore (verb), valuable, vibrant, seamlessly, cutting-edge, revolutionary, leverage, leveraging, transformative, meticulously, expertly, proven track record, elevate, multifaceted, catalyst, passionate.\n\n4. NO SUPERFICIAL \"-ING\" ENDINGS:\n   - Do not tack present participle clauses onto the end of sentences to pad the length (e.g., avoid: \"...highlighting X\", \"...ensuring Y\", \"...reflecting Z\", \"...fostering W\", \"...encompassing K\"). Write these as independent clauses or separate sentences.\n\n5. AVOID PERSUASIVE AND NOTABILITY PUFFERY:\n   - Do not add artificial statements about legacy, significance, or broader trends (e.g., \"marking a pivotal moment\", \"setting the stage for\", \"indelible mark\", \"testament to\", \"deeply rooted\"). Keep it completely factual, direct, and grounded.\n   - Do not use persuasive tropes like \"At its core\", \"In reality\", \"What really matters is\", \"Fundamentally\".\n\n6. STRUCTURAL RULES (RULE OF THREE, BOLDING, NEGATIVE PARALLELISMS):\n   - Avoid forcing bullet points or lists into rigid groups of three (the \"rule of three\" tell). Let items have natural lengths.\n   - Avoid boldface overuse inside text blocks.\n   - Do not use negative parallelisms like \"Not only... but also...\" or tailing negation fragments (e.g. \"no guessing\"). Write clean, direct active clauses.\n   - Avoid passive voice; use clear, direct active voice.\n\n\n8. STRICTLY NO EMOJIS:\n   - You are completely banned from using any emojis anywhere in the profile data or chat reply. Do not use emojis in bullet points, project names, or summaries.\n\n7. NATURAL VOICE AND SOUL:\n   - Write with a grounded, calm, and understated voice. Avoid overly eager, sycophantic, or enthusiastic chatbot phrases (e.g., do not say \"Great! Here is X\", \"I hope this helps!\", \"Certainly!\").\n   - When writing cover letters, avoid generic, excited introductions. Start directly with a clear, calm statement of interest and alignment with the role.\n\n[PROFILE SUMMARY AUTO-REFRESH ON EVERY UPDATE]\nEvery time the user provides new information and profile_updated = true, you MUST rewrite the 'summary' field in master_profile to accurately reflect ALL current profile data \u2014 including any newly added or modified details such as updated CGPA, new certifications, new work experience, new projects, or new skills. Never leave the summary stale or contradicting the rest of the profile. The summary should be 3-5 concise sentences written in first-person professional tone, starting with the candidate's name and current field/role, covering key skills and notable projects. Apply all the Human Writing Style rules above when rewriting the summary.\n\n[CRITICAL INSTRUCTION: STRICT JSON SCHEMA]\nYou MUST output ONLY a raw JSON object and nothing else. The JSON must contain exactly these three keys:\n1. \"chat_reply\": Your friendly natural language response.\n2. \"profile_updated\": boolean. Set TRUE if ANY new info was added, FALSE if no new facts.\n3. \"master_profile\": { name, tagline, contact: { email, phone, linkedin_url, linkedin_display, github_url, github_display, portfolio_url, portfolio_display }, summary, skills: [{category, items}], work_experience: [{ title, company, location, start_date, end_date, bullet_points: [] }], education: [{ degree, institution, score, year }], projects: [{ name, tech_stack, duration, link_url, link_display, bullet_points: [] }], certifications: [{ issuer, name, year }] }"
+          "systemMessage": "You are an expert AI Resume assistant. Your job is to extract user information and perfectly structure it for a LaTeX compiler.\n\n[USER CONTEXT FROM DATABASE]\n{{ $('Supabase Fetch').first().json.master_profile ? (typeof $('Supabase Fetch').first().json.master_profile === 'string' ? JSON.stringify(JSON.parse($('Supabase Fetch').first().json.master_profile), null, 2) : JSON.stringify($('Supabase Fetch').first().json.master_profile, null, 2)) : 'NO_PROFILE' }}\n\n\n[CRITICAL DATA PRESERVATION & MERGING RULES]\n- The data under `[USER CONTEXT FROM DATABASE]` represents the user's current master profile and is your absolute baseline.\n- **INCREMENTAL MERGING**: When the user chats to update their profile, you MUST only modify, add, or delete the specific fields/facts mentioned in their message. \n- **PRESERVE UNCHANGED DATA**: All other existing fields, bullet points, sections, and values in the `master_profile` that are not explicitly updated or removed by the user's current message MUST be copied and preserved EXACTLY.\n- **NEVER WIPE OUT EXISTING DATA**: If the user corrects a single field (e.g., their name or email), you must update only that specific field in `master_profile` while keeping the rest of their profile (e.g. contact, education, work experience, projects, skills, and certifications) completely intact. Never return a profile that only contains the new information while omitting the old.\n- **CONVERSATIONAL PROFILE QUERIES**: If the user asks a question about their saved profile or resume details (e.g., \"What was my Semester 1 mark?\", \"Did I add Python to my skills?\", \"What is my GPA?\", etc.), you MUST analyze their saved profile under `[USER CONTEXT FROM DATABASE]` to answer their question.\n  - Set `profile_updated` to `false` (since no new information is being added or updated).\n  - In `chat_reply`, provide a clear, direct, and concise answer to their question in a highly natural, human voice.\n  - Return `master_profile` exactly as-is without any modifications.\n  - If the profile is empty or does not contain the requested information, explain politely and clearly what is missing or that the profile has not been created yet.\n\n\n\n[TAGLINE RULE]\nThe `tagline` MUST strictly be a short role title ONLY (e.g., 'Full-stack developer and UI/UX designer', 'Software Engineer', 'Data Scientist'). Do NOT write descriptive sentences or add extra context (e.g., no 'building production-ready applications'). Keep it under 50 characters.\n\n[HUMAN WRITING STYLE & TONE RULES (CRITICAL ANTI-AI CONSTRAINTS)]\nTo ensure all generated resume content (summaries, tagline, bullet points), cover letters, and chat responses look and sound like highly natural, professional, human-written text rather than robotic AI-generated text, you MUST adhere to the following rules:\n\n1. HARD CONSTRAINT ON EM DASHES AND DOUBLE HYPHENS:\n   - Your final output MUST contain absolutely no em dashes (—), en dashes (–), or double hyphens (--, ---) inside text sentences.\n   - Replace each one using a period (to start a new sentence), a comma (for tight asides), a colon (introducing explanation), or parentheses (for true asides), or restructure the sentence entirely.\n\n2. COPULA AVOIDANCE (USE SIMPLE \"IS/ARE/HAS/HAVE\"):\n   - Do not replace simple copulas with elaborate constructions like \"serves as\", \"stands as\", \"boasts\", \"features\", \"offers\", or \"marks\".\n   - Use simple verbs like \"is\", \"are\", \"has\", \"have\", or direct active verbs (e.g., instead of \"boasts 5 years of experience\", write \"has 5 years of experience\").\n\n3. BANNED \"AI VOCABULARY\" WORDS:\n   - Do not use high-frequency AI words. Banned list: align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate, intricacies, key (adjective), landscape (abstract), pivotal, showcase, tapestry, testament, underscore (verb), valuable, vibrant, seamlessly, cutting-edge, revolutionary, leverage, leveraging, transformative, meticulously, expertly, proven track record, elevate, multifaceted, catalyst, passionate.\n\n4. NO SUPERFICIAL \"-ING\" ENDINGS:\n   - Do not tack present participle clauses onto the end of sentences to pad the length (e.g., avoid: \"...highlighting X\", \"...ensuring Y\", \"...reflecting Z\", \"...fostering W\", \"...encompassing K\"). Write these as independent clauses or separate sentences.\n\n5. AVOID PERSUASIVE AND NOTABILITY PUFFERY:\n   - Do not add artificial statements about legacy, significance, or broader trends (e.g., \"marking a pivotal moment\", \"setting the stage for\", \"indelible mark\", \"testament to\", \"deeply rooted\"). Keep it completely factual, direct, and grounded.\n   - Do not use persuasive tropes like \"At its core\", \"In reality\", \"What really matters is\", \"Fundamentally\".\n\n6. STRUCTURAL RULES (RULE OF THREE, BOLDING, NEGATIVE PARALLELISMS):\n   - Avoid forcing bullet points or lists into rigid groups of three (the \"rule of three\" tell). Let items have natural lengths.\n   - Avoid boldface overuse inside text blocks.\n   - Do not use negative parallelisms like \"Not only... but also...\" or tailing negation fragments (e.g. \"no guessing\"). Write clean, direct active clauses.\n   - Avoid passive voice; use clear, direct active voice.\n\n\n8. STRICTLY NO EMOJIS:\n   - You are completely banned from using any emojis anywhere in the profile data or chat reply. Do not use emojis in bullet points, project names, or summaries.\n\n7. NATURAL VOICE AND SOUL:\n   - Write with a grounded, calm, and understated voice. Avoid overly eager, sycophantic, or enthusiastic chatbot phrases (e.g., do not say \"Great! Here is X\", \"I hope this helps!\", \"Certainly!\").\n   - When writing cover letters, avoid generic, excited introductions. Start directly with a clear, calm statement of interest and alignment with the role.\n\n[PROFILE SUMMARY AUTO-REFRESH ON EVERY UPDATE]\nEvery time the user provides new information and profile_updated = true, you MUST rewrite the 'summary' field in master_profile to accurately reflect ALL current profile data — including any newly added or modified details such as updated CGPA, new certifications, new work experience, new projects, or new skills. Never leave the summary stale or contradicting the rest of the profile. The summary should be 3-5 concise sentences written in first-person professional tone, starting with the candidate's name and current field/role, covering key skills and notable projects. Apply all the Human Writing Style rules above when rewriting the summary.\n\n[CRITICAL INSTRUCTION: STRICT JSON SCHEMA]\nYou MUST output ONLY a raw JSON object and nothing else. The JSON must contain exactly these three keys:\n1. \"chat_reply\": Your friendly natural language response.\n2. \"profile_updated\": boolean. Set TRUE if ANY new info was added, FALSE if no new facts.\n3. \"master_profile\": { name, tagline, contact: { email, phone, linkedin_url, linkedin_display, github_url, github_display, portfolio_url, portfolio_display }, summary, skills: [{category, items}], work_experience: [{ title, company, location, start_date, end_date, bullet_points: [] }], education: [{ degree, institution, score, year }], projects: [{ name, tech_stack, duration, link_url, link_display, bullet_points: [] }], certifications: [{ issuer, name, year }] }"
         }
       },
-      "id": "818ea24c-6f8a-46f2-9529-8e7dbba29ef4",
+      "id": "b08d2fb3-6cdf-4c7c-833e-affa3ad4b60a",
       "name": "AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        27456,
-        88048
+        34464,
+        101408
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -803,26 +830,26 @@
         "sessionIdType": "customKey",
         "sessionKey": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}"
       },
-      "id": "64990e3e-93be-464e-bb34-8c0d77654cf6",
+      "id": "587b84cd-579e-41b9-94a3-89b8ba6f891e",
       "name": "Window Buffer Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.2,
       "position": [
-        27648,
-        88272
+        34656,
+        101632
       ]
     },
     {
       "parameters": {
         "jsCode": "let rawText = $input.item.json.output || \"\";\nlet parsed = {};\ntry {\n  let cleaned = rawText.replace(/```json|```/gi, \"\").trim();\n  const jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) cleaned = jsonMatch[0];\n  parsed = JSON.parse(cleaned);\n  if (typeof parsed.profile_updated === \"string\") parsed.profile_updated = parsed.profile_updated.toLowerCase() === \"true\";\n  if (parsed.profile_updated === undefined) parsed.profile_updated = !!parsed.master_profile;\n\n  const existingRow = $(\"Supabase Fetch\").first().json;\n  const isNewUser = !existingRow || !existingRow.telegram_id;\n  const hasProfileData = parsed.master_profile && typeof parsed.master_profile === \"object\" && Object.keys(parsed.master_profile).length > 0;\n  if (isNewUser && hasProfileData) parsed.profile_updated = true;\n} catch (e) {\n  parsed = { chat_reply: \"Sorry, I had trouble parsing that. Could you try again?\", profile_updated: false, master_profile: null };\n}\n\nconst buildStatus = (profile) => {\n  const missing = [];\n  const addMissing = (label) => { if (!missing.includes(label)) missing.push(label); };\n  const hasProfile = profile && typeof profile === \"object\";\n\n  if (!hasProfile) {\n    addMissing(\"your resume data\");\n  } else {\n    if (!profile.name || !String(profile.name).trim()) addMissing(\"your full name\");\n    const contact = profile.contact || {};\n    if (!contact.email && !contact.phone) addMissing(\"a contact email or phone number\");\n    if (!profile.summary || !String(profile.summary).trim()) addMissing(\"a short professional summary\");\n    const hasSkills = Array.isArray(profile.skills) && profile.skills.some((s) => {\n      const items = Array.isArray(s?.items) ? s.items.join(\", \") : (s?.items ?? s?.skills);\n      return items && String(items).trim();\n    });\n    if (!hasSkills) addMissing(\"your key skills\");\n    if (!Array.isArray(profile.education) || profile.education.length === 0) addMissing(\"your education details\");\n    if (!Array.isArray(profile.work_experience) || profile.work_experience.length === 0) addMissing(\"your work experience\");\n    if (!Array.isArray(profile.projects) || profile.projects.length === 0) addMissing(\"your projects\");\n  }\n\n  const isSufficient = missing.length === 0;\n  let prompt = \"\";\n  if (!isSufficient) {\n    if (!hasProfile) {\n      prompt = \"Your profile is currently empty. Please upload your resume PDF or send your professional details (starting with your full name) to establish your baseline profile.\";\n    } else {\n      prompt = \"Your profile is incomplete. Please provide your \" + missing[0] + \" next to complete your profile. You can paste the text here or upload your resume PDF.\";\n    }\n  }\n\n  return { isSufficient, missing, prompt };\n};\n\nconst rawProfile = parsed.master_profile ?? $(\"Supabase Fetch\").first().json.master_profile;\nlet profile = null;\ntry { profile = typeof rawProfile === \"string\" ? JSON.parse(rawProfile) : rawProfile; } catch (e) { profile = null; }\n\nconst profile_status = buildStatus(profile);\nparsed.profile_status = profile_status;\n\n// Only append incomplete-profile nudge when the user just updated their profile\n// (not on every query/reply while profile is still being built up)\nif (profile_status.prompt && parsed.profile_updated === true) {\n  parsed.chat_reply = parsed.chat_reply ? parsed.chat_reply + \"\\n\\n\" + profile_status.prompt : profile_status.prompt;\n}\n\nreturn [{ json: parsed }];"
       },
-      "id": "348f951a-876e-4fc7-b5c8-9097a96ed660",
+      "id": "d54e442f-392f-46d1-870f-9f0ec2e52c5b",
       "name": "Parse JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        27920,
-        88144
+        34928,
+        101504
       ]
     },
     {
@@ -836,13 +863,13 @@
           ]
         }
       },
-      "id": "b6c9374b-397b-49ed-b8e2-9dc8c7e12d0d",
+      "id": "4f7d221f-f405-44f4-9219-61607fd95fd0",
       "name": "Profile Updated?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        28432,
-        88144
+        35440,
+        101504
       ]
     },
     {
@@ -856,13 +883,13 @@
           ]
         }
       },
-      "id": "db6cf9b3-2a1b-4dc7-9870-d0d0dc34d191",
+      "id": "66d5b7d9-c14e-497a-a5d3-5a9d6c1df737",
       "name": "Row Exists?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        28656,
-        88080
+        35664,
+        101440
       ]
     },
     {
@@ -891,13 +918,13 @@
           ]
         }
       },
-      "id": "33dda970-8905-48a9-a757-e67c1ab490fe",
+      "id": "cbf4ad75-7463-4828-bd66-077b991c2f93",
       "name": "Supabase Update",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        28880,
-        87984
+        35888,
+        101344
       ],
       "credentials": {
         "supabaseApi": {
@@ -926,13 +953,13 @@
           ]
         }
       },
-      "id": "13c6e959-fdc8-47cd-a1a6-3084e2fd8220",
+      "id": "d0054d43-5202-438f-9034-8b26bbc81e2e",
       "name": "Supabase Create",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        28880,
-        88320
+        35888,
+        101680
       ],
       "credentials": {
         "supabaseApi": {
@@ -944,7 +971,7 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $('Parse JSON').item.json.chat_reply }}",
+        "text": "={{ $('Parse JSON').item.json.chat_reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "replyMarkup": "inlineKeyboard",
         "inlineKeyboard": {
           "rows": [
@@ -970,16 +997,17 @@
         },
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "eef97db1-9d28-4ac2-a937-05a352a38dd4",
+      "id": "19e454d2-5c66-471d-b4c5-80f3f4064ba1",
       "name": "Telegram Chat Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        29328,
-        88048
+        36336,
+        101408
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -996,10 +1024,10 @@
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        28880,
-        89104
+        35888,
+        102464
       ],
-      "id": "c0a021c1-792e-4a51-8056-979fe17d6615",
+      "id": "3511faff-6946-4771-a5e2-c02032b0b5d2",
       "name": "Read PDF Base64",
       "credentials": {
         "sshPassword": {
@@ -1013,13 +1041,13 @@
         "model": "qwen3-coder:480b",
         "options": {}
       },
-      "id": "124d7574-4e5c-4878-9208-ec80f1953e1c",
+      "id": "8f5bf463-e8a7-4d03-9760-3bea272ca73a",
       "name": "Ollama",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        27392,
-        88272
+        34400,
+        101632
       ],
       "credentials": {
         "openAiApi": {
@@ -1032,13 +1060,13 @@
       "parameters": {
         "jsCode": "const msg = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : ($('Telegram Trigger').item.json.message?.text || '');\nconst jd = msg.replace(/^\\/optimize\\s*/i, '').trim();\n\nif (!jd) {\n  return [{ json: { promptText: 'NO_JD' } }];\n}\n\nconst rawProfile = $('Supabase Fetch').first().json.master_profile;\nif (!rawProfile) {\n  return [{ json: { promptText: 'NO_PROFILE' } }];\n}\n\nlet profile;\ntry { profile = typeof rawProfile === 'string' ? JSON.parse(rawProfile) : rawProfile; }\ncatch(e) { return [{ json: { promptText: 'NO_PROFILE' } }]; }\n\nconst promptText = `OPTIMIZE my resume for this Job Description. Remember: COPY my name, contact, education, and certifications EXACTLY. Only rewrite summary, reorder skills, and rephrase bullet points.\n\nMY CURRENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nTARGET JOB DESCRIPTION:\n${jd}`;\n\nreturn [{ json: { promptText } }];"
       },
-      "id": "2cf62b6d-ea43-4e9f-a0ae-bca7f47ed965",
+      "id": "416f0d4b-f35f-46d0-8df0-a20fa2254d6f",
       "name": "Format JD Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        26240,
-        89472
+        33248,
+        102832
       ]
     },
     {
@@ -1047,16 +1075,16 @@
         "text": "={{ $json.promptText }}",
         "needsFallback": true,
         "options": {
-          "systemMessage": "=EARLY EXIT RULES (check FIRST before doing any analysis):\n- If the user message is exactly 'NO_JD' \u2192 output EXACTLY:\n  {\"chat_reply\": \"\u26a0\ufe0f Please paste the full job description directly after /optimize in one message. Example: /optimize paste JD here\", \"tailored_profile\": null}\n- If the user message is exactly 'NO_PROFILE' \u2192 output EXACTLY:\n  {\"chat_reply\": \"\u26a0\ufe0f No profile found. Please upload your resume PDF first, then try /optimize again.\", \"tailored_profile\": null}\n\nYou are an expert AI Resume Optimizer.\n\n[USER'S MASTER PROFILE \u2014 THIS IS GROUND TRUTH]\n{{ $('Supabase Fetch').first().json.master_profile ? (typeof $('Supabase Fetch').first().json.master_profile === 'string' ? JSON.stringify(JSON.parse($('Supabase Fetch').first().json.master_profile), null, 2) : JSON.stringify($('Supabase Fetch').first().json.master_profile, null, 2)) : 'NO_PROFILE' }}\n\n[STRICT RULES]\n1. NEVER fabricate or invent ANY data. No fake degrees, no fake companies, no fake projects.\n2. COPY these fields EXACTLY from master_profile without ANY changes:\n   - name, contact (all fields), education (all entries), certifications (all entries)\n3. You MAY ONLY modify:\n   - summary: rewrite to target the JD role\n   - tagline: adjust to match the JD role, BUT it MUST be strictly a short role title ONLY (e.g., 'Full-Stack Developer'). Do not add descriptive sentences.\n   - skills: reorder categories so JD-relevant ones come first. Keep ALL existing items.\n   - work_experience.bullet_points: rephrase to emphasize JD-relevant keywords\n   - projects.bullet_points: rephrase to emphasize JD-relevant keywords\n   - projects order: put most JD-relevant projects first\n4. Every skill category MUST have a non-empty 'items' string. Never leave items blank.\n5. Every work_experience and project MUST keep ALL original bullet_points (rephrase, don't delete).\n\n\n[HUMAN WRITING STYLE & TONE RULES (CRITICAL ANTI-AI CONSTRAINTS)]\nTo ensure all generated resume content (summaries, tagline, bullet points), cover letters, and chat responses look and sound like highly natural, professional, human-written text rather than robotic AI-generated text, you MUST adhere to the following rules:\n\n1. HARD CONSTRAINT ON EM DASHES AND DOUBLE HYPHENS:\n   - Your final output MUST contain absolutely no em dashes (\u2014), en dashes (\u2013), or double hyphens (--, ---) inside text sentences.\n   - Replace each one using a period (to start a new sentence), a comma (for tight asides), a colon (introducing explanation), or parentheses (for true asides), or restructure the sentence entirely.\n\n2. COPULA AVOIDANCE (USE SIMPLE \"IS/ARE/HAS/HAVE\"):\n   - Do not replace simple copulas with elaborate constructions like \"serves as\", \"stands as\", \"boasts\", \"features\", \"offers\", or \"marks\".\n   - Use simple verbs like \"is\", \"are\", \"has\", \"have\", or direct active verbs (e.g., instead of \"boasts 5 years of experience\", write \"has 5 years of experience\").\n\n3. BANNED \"AI VOCABULARY\" WORDS:\n   - Do not use high-frequency AI words. Banned list: align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate, intricacies, key (adjective), landscape (abstract), pivotal, showcase, tapestry, testament, underscore (verb), valuable, vibrant, seamlessly, cutting-edge, revolutionary, leverage, leveraging, transformative, meticulously, expertly, proven track record, elevate, multifaceted, catalyst, passionate.\n\n4. NO SUPERFICIAL \"-ING\" ENDINGS:\n   - Do not tack present participle clauses onto the end of sentences to pad the length (e.g., avoid: \"...highlighting X\", \"...ensuring Y\", \"...reflecting Z\", \"...fostering W\", \"...encompassing K\"). Write these as independent clauses or separate sentences.\n\n5. AVOID PERSUASIVE AND NOTABILITY PUFFERY:\n   - Do not add artificial statements about legacy, significance, or broader trends (e.g., \"marking a pivotal moment\", \"setting the stage for\", \"indelible mark\", \"testament to\", \"deeply rooted\"). Keep it completely factual, direct, and grounded.\n   - Do not use persuasive tropes like \"At its core\", \"In reality\", \"What really matters is\", \"Fundamentally\".\n\n6. STRUCTURAL RULES (RULE OF THREE, BOLDING, NEGATIVE PARALLELISMS):\n   - Avoid forcing bullet points or lists into rigid groups of three (the \"rule of three\" tell). Let items have natural lengths.\n   - Avoid boldface overuse inside text blocks.\n   - Do not use negative parallelisms like \"Not only... but also...\" or tailing negation fragments (e.g. \"no guessing\"). Write clean, direct active clauses.\n   - Avoid passive voice; use clear, direct active voice.\n\n\n8. STRICTLY NO EMOJIS:\n   - You are completely banned from using any emojis anywhere in the profile data (bullet points, skills, etc.) or chat reply.\n\n7. NATURAL VOICE AND SOUL:\n   - Write with a grounded, calm, and understated voice. Avoid overly eager, sycophantic, or enthusiastic chatbot phrases (e.g., do not say \"Great! Here is X\", \"I hope this helps!\", \"Certainly!\").\n   - When writing cover letters, avoid generic, excited introductions. Start directly with a clear, calm statement of interest and alignment with the role.\n\n[YOUR TASK]\nThe user will paste a Job Description. You must:\n1. Identify skill gaps between the JD and the master_profile\n2. Construct a tailored_profile by reframing (not fabricating) existing data\n3. In chat_reply, list 2-3 key optimizations you made and any skill gaps found\n\n[OUTPUT FORMAT \u2014 RAW JSON ONLY]\n{\n  \"chat_reply\": \"string \u2014 gaps found + optimizations made\",\n  \"tailored_profile\": { EXACT same schema as master_profile with all fields populated }\n}"
+          "systemMessage": "=EARLY EXIT RULES (check FIRST before doing any analysis):\n- If the user message is exactly 'NO_JD' → output EXACTLY:\n  {\"chat_reply\": \"⚠️ Please paste the full job description directly after /optimize in one message. Example: /optimize paste JD here\", \"tailored_profile\": null}\n- If the user message is exactly 'NO_PROFILE' → output EXACTLY:\n  {\"chat_reply\": \"⚠️ No profile found. Please upload your resume PDF first, then try /optimize again.\", \"tailored_profile\": null}\n\nYou are an expert AI Resume Optimizer.\n\n[USER'S MASTER PROFILE — THIS IS GROUND TRUTH]\n{{ $('Supabase Fetch').first().json.master_profile ? (typeof $('Supabase Fetch').first().json.master_profile === 'string' ? JSON.stringify(JSON.parse($('Supabase Fetch').first().json.master_profile), null, 2) : JSON.stringify($('Supabase Fetch').first().json.master_profile, null, 2)) : 'NO_PROFILE' }}\n\n[STRICT RULES]\n1. NEVER fabricate or invent ANY data. No fake degrees, no fake companies, no fake projects.\n2. COPY these fields EXACTLY from master_profile without ANY changes:\n   - name, contact (all fields), education (all entries), certifications (all entries)\n3. You MAY ONLY modify:\n   - summary: rewrite to target the JD role\n   - tagline: adjust to match the JD role, BUT it MUST be strictly a short role title ONLY (e.g., 'Full-Stack Developer'). Do not add descriptive sentences.\n   - skills: reorder categories so JD-relevant ones come first. Keep ALL existing items.\n   - work_experience.bullet_points: rephrase to emphasize JD-relevant keywords\n   - projects.bullet_points: rephrase to emphasize JD-relevant keywords\n   - projects order: put most JD-relevant projects first\n4. Every skill category MUST have a non-empty 'items' string. Never leave items blank.\n5. Every work_experience and project MUST keep ALL original bullet_points (rephrase, don't delete).\n\n\n[HUMAN WRITING STYLE & TONE RULES (CRITICAL ANTI-AI CONSTRAINTS)]\nTo ensure all generated resume content (summaries, tagline, bullet points), cover letters, and chat responses look and sound like highly natural, professional, human-written text rather than robotic AI-generated text, you MUST adhere to the following rules:\n\n1. HARD CONSTRAINT ON EM DASHES AND DOUBLE HYPHENS:\n   - Your final output MUST contain absolutely no em dashes (—), en dashes (–), or double hyphens (--, ---) inside text sentences.\n   - Replace each one using a period (to start a new sentence), a comma (for tight asides), a colon (introducing explanation), or parentheses (for true asides), or restructure the sentence entirely.\n\n2. COPULA AVOIDANCE (USE SIMPLE \"IS/ARE/HAS/HAVE\"):\n   - Do not replace simple copulas with elaborate constructions like \"serves as\", \"stands as\", \"boasts\", \"features\", \"offers\", or \"marks\".\n   - Use simple verbs like \"is\", \"are\", \"has\", \"have\", or direct active verbs (e.g., instead of \"boasts 5 years of experience\", write \"has 5 years of experience\").\n\n3. BANNED \"AI VOCABULARY\" WORDS:\n   - Do not use high-frequency AI words. Banned list: align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate, intricacies, key (adjective), landscape (abstract), pivotal, showcase, tapestry, testament, underscore (verb), valuable, vibrant, seamlessly, cutting-edge, revolutionary, leverage, leveraging, transformative, meticulously, expertly, proven track record, elevate, multifaceted, catalyst, passionate.\n\n4. NO SUPERFICIAL \"-ING\" ENDINGS:\n   - Do not tack present participle clauses onto the end of sentences to pad the length (e.g., avoid: \"...highlighting X\", \"...ensuring Y\", \"...reflecting Z\", \"...fostering W\", \"...encompassing K\"). Write these as independent clauses or separate sentences.\n\n5. AVOID PERSUASIVE AND NOTABILITY PUFFERY:\n   - Do not add artificial statements about legacy, significance, or broader trends (e.g., \"marking a pivotal moment\", \"setting the stage for\", \"indelible mark\", \"testament to\", \"deeply rooted\"). Keep it completely factual, direct, and grounded.\n   - Do not use persuasive tropes like \"At its core\", \"In reality\", \"What really matters is\", \"Fundamentally\".\n\n6. STRUCTURAL RULES (RULE OF THREE, BOLDING, NEGATIVE PARALLELISMS):\n   - Avoid forcing bullet points or lists into rigid groups of three (the \"rule of three\" tell). Let items have natural lengths.\n   - Avoid boldface overuse inside text blocks.\n   - Do not use negative parallelisms like \"Not only... but also...\" or tailing negation fragments (e.g. \"no guessing\"). Write clean, direct active clauses.\n   - Avoid passive voice; use clear, direct active voice.\n\n\n8. STRICTLY NO EMOJIS:\n   - You are completely banned from using any emojis anywhere in the profile data (bullet points, skills, etc.) or chat reply.\n\n7. NATURAL VOICE AND SOUL:\n   - Write with a grounded, calm, and understated voice. Avoid overly eager, sycophantic, or enthusiastic chatbot phrases (e.g., do not say \"Great! Here is X\", \"I hope this helps!\", \"Certainly!\").\n   - When writing cover letters, avoid generic, excited introductions. Start directly with a clear, calm statement of interest and alignment with the role.\n\n[YOUR TASK]\nThe user will paste a Job Description. You must:\n1. Identify skill gaps between the JD and the master_profile\n2. Construct a tailored_profile by reframing (not fabricating) existing data\n3. In chat_reply, list 2-3 key optimizations you made and any skill gaps found\n\n[OUTPUT FORMAT — RAW JSON ONLY]\n{\n  \"chat_reply\": \"string — gaps found + optimizations made\",\n  \"tailored_profile\": { EXACT same schema as master_profile with all fields populated }\n}"
         }
       },
-      "id": "ed46a7f2-a224-4ba9-b762-50eb866867f6",
+      "id": "7fa2fcea-35f9-4711-a3f1-8882a798ed4f",
       "name": "AI JD Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        26464,
-        89360
+        33472,
+        102720
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -1067,13 +1095,13 @@
         "model": "qwen3-coder:480b",
         "options": {}
       },
-      "id": "364e418f-c54d-4c26-aebf-ae3d97d50ac1",
+      "id": "3e2e6455-9235-499d-9e67-0990fc2b898b",
       "name": "Ollama JD",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        26480,
-        89584
+        33488,
+        102944
       ],
       "credentials": {
         "openAiApi": {
@@ -1086,13 +1114,13 @@
       "parameters": {
         "jsCode": "let rawText = $input.item.json.output || '';\nlet parsed = {};\ntry {\n  let cleaned = rawText.replace(/```json|```/gi, '').trim();\n  const m = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (m) cleaned = m[0];\n  parsed = JSON.parse(cleaned);\n} catch(e) {\n  parsed = { chat_reply: \"Sorry, I had trouble optimizing your profile. Try again!\", tailored_profile: null };\n}\nreturn [{ json: parsed }];"
       },
-      "id": "5e7efa12-53f2-4d7f-aa60-37276b17b196",
+      "id": "dd74cd2e-83eb-4556-8abb-8edebabaf381",
       "name": "Parse JD JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        26880,
-        89472
+        33888,
+        102832
       ]
     },
     {
@@ -1117,13 +1145,13 @@
           ]
         }
       },
-      "id": "8c0e9588-312c-4b50-a18e-baa74ebdf864",
+      "id": "213d5a7a-e742-4de7-9cde-63271fac216b",
       "name": "Supabase Save Tailored",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        27168,
-        89472
+        34176,
+        102832
       ],
       "credentials": {
         "supabaseApi": {
@@ -1135,7 +1163,7 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ '*Resume Optimization Complete*\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n' + $('Parse JD JSON').item.json.chat_reply + '' }}",
+        "text": "={{ '*Resume Optimization Complete*\\n━━━━━━━━━━━━━━━━━━━━\\n\\n' + $('Parse JD JSON').item.json.chat_reply + '' }}",
         "replyMarkup": "={{ $('Parse JD JSON').item.json.tailored_profile ? 'inlineKeyboard' : 'none' }}",
         "forceReply": {},
         "inlineKeyboard": {
@@ -1168,13 +1196,13 @@
           "parse_mode": "Markdown"
         }
       },
-      "id": "8eb69b61-74ea-4342-9bb0-eb3cb4b4fb3b",
+      "id": "0389c1c6-f29a-440a-812a-266d54dcf96c",
       "name": "Telegram Optimize Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        27520,
-        89472
+        34528,
+        102832
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -1186,15 +1214,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.item.json.tailored_profile\n  ?? $('Supabase Fetch').first().json.tailored_profile;\n\nif (!raw) return [{ json: { text: \"No optimized profile exists\" } }];\n\nlet p;\ntry { p = typeof raw === 'string' ? JSON.parse(raw) : raw; }\ncatch(e) { return [{ json: { text: \"\u274c Could not read tailored profile. Try running /optimize again.\" } }]; }\n\nconst hasData = p.name || p.summary || p.tagline\n  || (p.skills && p.skills.length > 0)\n  || (p.work_experience && p.work_experience.length > 0);\n\nif (!hasData) return [{ json: { text: \"No optimized profile exists\" } }];\n\nlet msg = `*Tailored Resume Profile*\\n\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\\n\\n`;\n\nif (p.name) msg += `*${p.name}*\\n`;\nif (p.tagline) msg += `_${p.tagline}_\\n`;\nif (p.name || p.tagline) msg += `\\n`;\n\nif (p.contact) {\n  const c = p.contact;\n  const hasContact = c.email || c.phone || c.linkedin_display || c.linkedin_url || c.github_display || c.github_url || c.portfolio_display || c.portfolio_url;\n  if (hasContact) {\n    msg += `*Contact Details*\\n`;\n    if (c.email) msg += `  Email: ${c.email}\\n`;\n    if (c.phone) msg += `  Phone: ${c.phone}\\n`;\n    if (c.linkedin_display || c.linkedin_url) msg += `  LinkedIn: ${c.linkedin_display || c.linkedin_url}\\n`;\n    if (c.github_display || c.github_url) msg += `  GitHub: ${c.github_display || c.github_url}\\n`;\n    if (c.portfolio_display || c.portfolio_url) msg += `  Portfolio: ${c.portfolio_display || c.portfolio_url}\\n`;\n    msg += `\\n`;\n  }\n}\n\nif (p.summary) msg += `*Professional Summary*\\n${p.summary}\\n\\n`;\n\nif (p.education && p.education.length > 0) {\n  msg += `*Education*\\n`;\n  p.education.forEach(e => {\n    msg += `    - *${e.degree}*\\n    ${e.institution}\\n`;\n    if (e.score) msg += `    Score: ${e.score}\\n`;\n    if (e.year) msg += `    Year: ${e.year}\\n`;\n  });\n  msg += `\\n`;\n}\n\nif (p.work_experience && p.work_experience.length > 0) {\n  msg += `*Work Experience*\\n`;\n  p.work_experience.forEach(w => {\n    msg += `\\n  *${w.title}* at ${w.company}`;\n    if (w.location) msg += `, ${w.location}`;\n    msg += `\\n`;\n    if (w.start_date) msg += `  _${w.start_date}${w.end_date ? ' \u2013 ' + w.end_date : ' \u2013 Present'}_\\n`;\n    if (w.bullet_points && w.bullet_points.length > 0)\n      w.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.projects && p.projects.length > 0) {\n  msg += `*Projects*\\n`;\n  p.projects.forEach(proj => {\n    msg += `\\n  *${proj.name}*\\n`;\n    if (proj.tech_stack) msg += `  _${proj.tech_stack}_\\n`;\n    if (proj.duration) msg += `  _${proj.duration}_\\n`;\n    if (proj.link_display || proj.link_url) msg += `  \ud83d\udd17 ${proj.link_display || proj.link_url}\\n`;\n    if (proj.bullet_points && proj.bullet_points.length > 0)\n      proj.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.skills && p.skills.length > 0) {\n  msg += `*Technical Skills*\\n`;\n  p.skills.forEach(s => msg += `    - *${s.category || 'Skill'}:* ${s.items || s}\\n`);\n  msg += `\\n`;\n}\n\nif (p.certifications && p.certifications.length > 0) {\n  msg += `*Certifications*\\n`;\n  p.certifications.forEach(cert => {\n    msg += `    - *${cert.name}*\\n    ${cert.issuer}`;\n    if (cert.year) msg += ` (${cert.year})`;\n    msg += `\\n`;\n  });\n  msg += `\\n`;\n}\n\n\nif (msg.length <= 4096) return [{ json: { text: msg, isLast: true } }];\nconst chunks = []; let current = '';\nfor (const line of msg.split('\\n')) {\n  if ((current + line + '\\n').length > 4000) { chunks.push(current.trim()); current = line + '\\n'; }\n  else current += line + '\\n';\n}\nif (current.trim()) chunks.push(current.trim());\nreturn chunks.map((text, index) => ({ json: { text, isLast: index === chunks.length - 1 } }));"
+        "jsCode": "const raw = $input.item.json.tailored_profile\n  ?? $('Supabase Fetch').first().json.tailored_profile;\n\nif (!raw) return [{ json: { text: \"No optimized profile exists\" } }];\n\nlet p;\ntry { p = typeof raw === 'string' ? JSON.parse(raw) : raw; }\ncatch(e) { return [{ json: { text: \"❌ Could not read tailored profile. Try running /optimize again.\" } }]; }\n\nconst hasData = p.name || p.summary || p.tagline\n  || (p.skills && p.skills.length > 0)\n  || (p.work_experience && p.work_experience.length > 0);\n\nif (!hasData) return [{ json: { text: \"No optimized profile exists\" } }];\n\nlet msg = `*Tailored Resume Profile*\\n━━━━━━━━━━━━━━━━━━━━\\n\\n`;\n\nif (p.name) msg += `*${p.name}*\\n`;\nif (p.tagline) msg += `_${p.tagline}_\\n`;\nif (p.name || p.tagline) msg += `\\n`;\n\nif (p.contact) {\n  const c = p.contact;\n  const hasContact = c.email || c.phone || c.linkedin_display || c.linkedin_url || c.github_display || c.github_url || c.portfolio_display || c.portfolio_url;\n  if (hasContact) {\n    msg += `*Contact Details*\\n`;\n    if (c.email) msg += `  Email: ${c.email}\\n`;\n    if (c.phone) msg += `  Phone: ${c.phone}\\n`;\n    if (c.linkedin_display || c.linkedin_url) msg += `  LinkedIn: ${c.linkedin_display || c.linkedin_url}\\n`;\n    if (c.github_display || c.github_url) msg += `  GitHub: ${c.github_display || c.github_url}\\n`;\n    if (c.portfolio_display || c.portfolio_url) msg += `  Portfolio: ${c.portfolio_display || c.portfolio_url}\\n`;\n    msg += `\\n`;\n  }\n}\n\nif (p.summary) msg += `*Professional Summary*\\n${p.summary}\\n\\n`;\n\nif (p.education && p.education.length > 0) {\n  msg += `*Education*\\n`;\n  p.education.forEach(e => {\n    msg += `    - *${e.degree}*\\n    ${e.institution}\\n`;\n    if (e.score) msg += `    Score: ${e.score}\\n`;\n    if (e.year) msg += `    Year: ${e.year}\\n`;\n  });\n  msg += `\\n`;\n}\n\nif (p.work_experience && p.work_experience.length > 0) {\n  msg += `*Work Experience*\\n`;\n  p.work_experience.forEach(w => {\n    msg += `\\n  *${w.title}* at ${w.company}`;\n    if (w.location) msg += `, ${w.location}`;\n    msg += `\\n`;\n    if (w.start_date) msg += `  _${w.start_date}${w.end_date ? ' – ' + w.end_date : ' – Present'}_\\n`;\n    if (w.bullet_points && w.bullet_points.length > 0)\n      w.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.projects && p.projects.length > 0) {\n  msg += `*Projects*\\n`;\n  p.projects.forEach(proj => {\n    msg += `\\n  *${proj.name}*\\n`;\n    if (proj.tech_stack) msg += `  _${proj.tech_stack}_\\n`;\n    if (proj.duration) msg += `  _${proj.duration}_\\n`;\n    if (proj.link_display || proj.link_url) msg += `  🔗 ${proj.link_display || proj.link_url}\\n`;\n    if (proj.bullet_points && proj.bullet_points.length > 0)\n      proj.bullet_points.forEach(b => msg += `        - ${b}\\n`);\n  });\n  msg += `\\n`;\n}\n\nif (p.skills && p.skills.length > 0) {\n  msg += `*Technical Skills*\\n`;\n  p.skills.forEach(s => msg += `    - *${s.category || 'Skill'}:* ${s.items || s}\\n`);\n  msg += `\\n`;\n}\n\nif (p.certifications && p.certifications.length > 0) {\n  msg += `*Certifications*\\n`;\n  p.certifications.forEach(cert => {\n    msg += `    - *${cert.name}*\\n    ${cert.issuer}`;\n    if (cert.year) msg += ` (${cert.year})`;\n    msg += `\\n`;\n  });\n  msg += `\\n`;\n}\n\n\nif (msg.length <= 4096) return [{ json: { text: msg, isLast: true } }];\nconst chunks = []; let current = '';\nfor (const line of msg.split('\\n')) {\n  if ((current + line + '\\n').length > 4000) { chunks.push(current.trim()); current = line + '\\n'; }\n  else current += line + '\\n';\n}\nif (current.trim()) chunks.push(current.trim());\nreturn chunks.map((text, index) => ({ json: { text, isLast: index === chunks.length - 1 } }));"
       },
-      "id": "2ea69821-bea2-41a3-8c64-f2c5d4596bb9",
+      "id": "2e9fef2b-13a6-412e-b70b-242530bac857",
       "name": "Format JD View",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25952,
-        89664
+        32960,
+        103024
       ]
     },
     {
@@ -1227,13 +1255,13 @@
           "parse_mode": "Markdown"
         }
       },
-      "id": "e236acd6-8adc-4db2-a9c0-e02dcdaa9a30",
+      "id": "883acb75-be44-4a70-8b0d-ab0408cfef6d",
       "name": "Telegram JD View Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26240,
-        89664
+        33248,
+        103024
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -1246,7 +1274,7 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "<b>Welcome to ResumeBot</b>\n\nResumeBot manages your professional profile, allowing you to update your information through natural conversation and generate tailored, ATS-friendly PDF resumes and cover letters for specific job descriptions.\n\n<b>How it works:</b>\n\n1. <b>Upload Resume:</b> Send your current resume as a PDF. The bot will parse the text and establish your baseline <b>Master Profile</b>.\n2. <b>Conversational Updates:</b> Update your details at any time by messaging naturally (e.g., <i>\"I just completed a Python certification\"</i>).\n3. <b>Target a Job:</b> Use <code>/optimize [paste job description]</code> to generate a temporary <b>Tailored Profile</b> optimized for that role.\n\n<b>Command Menu:</b>\n\n<code>/view</code> \u2014 Preview your master profile\n<code>/download</code> \u2014 Download your master resume as a PDF\n<code>/optimize [JD]</code> \u2014 Tailor your profile to a job description\n<code>/viewOptimized</code> \u2014 Preview your tailored profile\n<code>/downloadOptimized</code> \u2014 Download your tailored resume as a PDF\n<code>/coverletter</code> \u2014 Download your tailored cover letter as a PDF\n<code>/analyze [JD]</code> \u2014 ATS keyword gap analysis against a job description\n<code>/clear</code> \u2014 \u26a0\ufe0f Permanently delete your entire profile\n<code>/start</code> \u2014 View this menu again\n\n<i>Note: Running <code>/optimize</code> only modifies a temporary profile for your current application; your Master Profile is always preserved.</i>",
+        "text": "<b>Welcome to ResumeBot</b>\n\nResumeBot manages your professional profile, allowing you to update your information through natural conversation and generate tailored, ATS-friendly PDF resumes and cover letters for specific job descriptions.\n\n<b>How it works:</b>\n\n1. <b>Upload Resume:</b> Send your current resume as a PDF. The bot will parse the text and establish your baseline <b>Master Profile</b>.\n2. <b>Conversational Updates:</b> Update your details at any time by messaging naturally (e.g., <i>\"I just completed a Python certification\"</i>).\n3. <b>Target a Job:</b> Use <code>/optimize [paste job description]</code> to generate a temporary <b>Tailored Profile</b> optimized for that role.\n\n<b>Command Menu:</b>\n\n<code>/view</code> — Preview your master profile\n<code>/download</code> — Download your master resume as a PDF\n<code>/optimize [JD]</code> — Tailor your profile to a job description\n<code>/viewOptimized</code> — Preview your tailored profile\n<code>/downloadOptimized</code> — Download your tailored resume as a PDF\n<code>/coverletter</code> — Download your tailored cover letter as a PDF\n<code>/analyze [JD]</code> — ATS keyword gap analysis against a job description\n<code>/clear</code> — ⚠️ Permanently delete your entire profile\n<code>/start</code> — View this menu again\n\n<i>Note: Running <code>/optimize</code> only modifies a temporary profile for your current application; your Master Profile is always preserved.</i>",
         "replyMarkup": "inlineKeyboard",
         "inlineKeyboard": {
           "rows": [
@@ -1308,7 +1336,7 @@
               "row": {
                 "buttons": [
                   {
-                    "text": "\ud83d\uddd1\ufe0f Clear Profile",
+                    "text": "🗑️ Clear Profile",
                     "additionalFields": {
                       "callback_data": "/clear"
                     }
@@ -1324,13 +1352,13 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "fdbd072c-8b06-411f-b6ea-0ee1ca7dddac",
+      "id": "6429c8b0-eb8c-42a3-a9c2-a3ca9e3c8681",
       "name": "Telegram Info Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        87184
+        32960,
+        100416
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -1347,16 +1375,17 @@
         "additionalFields": {
           "appendAttribution": false,
           "disable_notification": true,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        26880,
-        88736
+        33888,
+        102096
       ],
-      "id": "e280f203-c876-4fa2-a438-ed8f4e0b09df",
+      "id": "474bda31-4ebb-41c6-a0ea-189f339f6a0f",
       "name": "Send Update Wait Msg",
       "webhookId": "320a3c2c-185f-4ff2-b47d-ef92625ddc2e",
       "credentials": {
@@ -1378,26 +1407,26 @@
           ]
         }
       },
-      "id": "8c449e3b-19f8-4854-b7ea-0dbc1e5768b2",
+      "id": "fe75bfd3-e16f-41fc-909e-eb3e13c61998",
       "name": "If Compile Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        27168,
-        89008
+        34176,
+        102368
       ]
     },
     {
       "parameters": {
         "jsCode": "const stdout = $('Write LaTeX File').item.json.stdout;\nconst rawTex = Buffer.from($('Generate LaTeX').item.json.tex_b64, 'base64').toString('utf8');\n\nconst promptText = `The following LaTeX code failed to compile with pdflatex. Here is the compile log:\n\n[COMPILE LOG]\n${stdout}\n\n[ORIGINAL LATEX CODE]\n${rawTex}\n\nFix the compilation error (especially check for unescaped special characters like %, &, $, _, #, etc. inside text blocks, missing packages, or table columns mismatches). Return ONLY the corrected raw LaTeX code.`;\n\nreturn [{ json: { promptText } }];"
       },
-      "id": "684f5a4a-780f-4db0-bae9-ab3093ae7ad5",
+      "id": "a9c44e4f-1d71-42ec-9948-4116d00f6e4c",
       "name": "Format Fix LaTeX Prompt",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        27520,
-        88880
+        34528,
+        102240
       ]
     },
     {
@@ -1409,13 +1438,13 @@
           "systemMessage": "You are a LaTeX expert. Fix any pdflatex compilation errors in the provided LaTeX code. Return ONLY the corrected raw LaTeX code, starting with \\documentclass and ending with \\end{document}. No explanation, no markdown, no backticks."
         }
       },
-      "id": "50b89a50-e27f-4b7c-adb4-89c7b6aceba6",
+      "id": "5f21a7b6-ea34-440a-ad4b-fe7034b9400c",
       "name": "AI Fix LaTeX Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        27856,
-        88880
+        34864,
+        102240
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -1426,13 +1455,13 @@
         "model": "qwen3-coder:480b",
         "options": {}
       },
-      "id": "7c58365b-61da-450c-8be0-dbac46a04a89",
+      "id": "4378405b-af9e-4b31-98f2-bf65a2fc66e4",
       "name": "Ollama Fix LaTeX Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        27872,
-        89104
+        34880,
+        102464
       ],
       "credentials": {
         "openAiApi": {
@@ -1445,26 +1474,26 @@
       "parameters": {
         "jsCode": "const rawTex = $input.item.json.output || '';\nconst cleaned = rawTex.replace(/```latex|```/gi, '').trim();\nreturn [{ json: { fixed_tex_b64: Buffer.from(cleaned).toString('base64') } }];"
       },
-      "id": "219b0b77-549c-4339-a838-8180905317c7",
+      "id": "233333f4-2d58-4592-a72a-5cd5cbb4439e",
       "name": "Base64 Encode Fixed LaTeX",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        28208,
-        88880
+        35216,
+        102240
       ]
     },
     {
       "parameters": {
         "command": "=echo \"{{ $json.fixed_tex_b64 }}\" | base64 -d > /tmp/resume_{{ $execution.id }}.tex\ncd /tmp\npdflatex -interaction=nonstopmode resume_{{ $execution.id }}.tex > /tmp/compile_retry_{{ $execution.id }}.log 2>&1\npdflatex -interaction=nonstopmode resume_{{ $execution.id }}.tex >> /tmp/compile_retry_{{ $execution.id }}.log 2>&1\nif [ $? -eq 0 ] && [ -f resume_{{ $execution.id }}.pdf ]; then\n  echo \"SUCCESS\"\nelse\n  echo \"RETRY_FAILED\"\n  cat /tmp/compile_retry_{{ $execution.id }}.log\nfi"
       },
-      "id": "25de935a-e127-4785-9e8d-059ee83b4fd6",
+      "id": "27ca6dbc-4d99-4be1-af92-5deae6ab939e",
       "name": "Write LaTeX File (Retry)",
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        28432,
-        88880
+        35440,
+        102240
       ],
       "credentials": {
         "sshPassword": {
@@ -1485,13 +1514,13 @@
           ]
         }
       },
-      "id": "469252a1-e837-4e53-98d1-d41e04d3b175",
+      "id": "13baa549-9202-4582-9140-f4d226df5a09",
       "name": "If Retry Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        28656,
-        88880
+        35664,
+        102240
       ]
     },
     {
@@ -1500,16 +1529,17 @@
         "text": "Oops! I ran into a formatting error while compiling your PDF. Try removing any special math characters and try again.",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "c18a1ccf-bcb2-4ffc-b4ec-6e36ea47cce6",
+      "id": "c0c682e1-a9fb-4d9c-bdf4-2c3fe501c1f1",
       "name": "Send Compile Error Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        28880,
-        88608
+        35888,
+        101968
       ],
       "webhookId": "3f3de8d4-fc5e-477e-8a60-49d00e24298e",
       "credentials": {
@@ -1521,15 +1551,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const msg = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : ($('Telegram Trigger').item.json.message?.text || '');\nconst jdText = msg.replace(/^\\/coverletter\\s*/i, '').trim();\n// Require at least 80 chars \u2014 single words/phrases are not a real JD\nconst hasValidJd = jdText.length >= 80;\nconst rawTailored = $('Supabase Fetch').first().json.tailored_profile;\nconst rawMaster = $('Supabase Fetch').first().json.master_profile;\nif (hasValidJd) {\n  if (!rawMaster) {\n    return [{ json: { success: false, text: \"\ud83d\udced No profile found. Please upload your resume PDF first before generating a cover letter!\" } }];\n  }\n  let profile;\n  try { profile = typeof rawMaster === 'string' ? JSON.parse(rawMaster) : rawMaster; }\n  catch(e) { return [{ json: { success: false, text: \"\u274c Could not read profile data.\" } }]; }\n  return [{ json: { success: true, profile, jd: jdText, mode: 'jd' } }];\n} else {\n  const raw = rawTailored || rawMaster;\n  if (!raw) {\n    return [{ json: { success: false, text: \"\ud83d\udced No profile found. Please upload your resume PDF or run /optimize first before generating a cover letter!\" } }];\n  }\n  let profile;\n  try { profile = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch(e) { return [{ json: { success: false, text: \"\u274c Could not read profile data.\" } }]; }\n  const mode = rawTailored ? 'tailored' : 'master';\n  return [{ json: { success: true, profile, jd: null, mode } }];\n}"
+        "jsCode": "const msg = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : ($('Telegram Trigger').item.json.message?.text || '');\nconst jdText = msg.replace(/^\\/coverletter\\s*/i, '').trim();\n// Require at least 80 chars — single words/phrases are not a real JD\nconst hasValidJd = jdText.length >= 80;\nconst rawTailored = $('Supabase Fetch').first().json.tailored_profile;\nconst rawMaster = $('Supabase Fetch').first().json.master_profile;\nif (hasValidJd) {\n  if (!rawMaster) {\n    return [{ json: { success: false, text: \"📭 No profile found. Please upload your resume PDF first before generating a cover letter!\" } }];\n  }\n  let profile;\n  try { profile = typeof rawMaster === 'string' ? JSON.parse(rawMaster) : rawMaster; }\n  catch(e) { return [{ json: { success: false, text: \"❌ Could not read profile data.\" } }]; }\n  return [{ json: { success: true, profile, jd: jdText, mode: 'jd' } }];\n} else {\n  const raw = rawTailored || rawMaster;\n  if (!raw) {\n    return [{ json: { success: false, text: \"📭 No profile found. Please upload your resume PDF or run /optimize first before generating a cover letter!\" } }];\n  }\n  let profile;\n  try { profile = typeof raw === 'string' ? JSON.parse(raw) : raw; }\n  catch(e) { return [{ json: { success: false, text: \"❌ Could not read profile data.\" } }]; }\n  const mode = rawTailored ? 'tailored' : 'master';\n  return [{ json: { success: true, profile, jd: null, mode } }];\n}"
       },
-      "id": "b7a9eb8f-d29d-4cba-85c9-5c6254d36305",
+      "id": "ca85a4f6-ffcb-48a3-b199-38f03869fd18",
       "name": "Check Cover Letter Profile",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        25952,
-        89904
+        32960,
+        103264
       ]
     },
     {
@@ -1543,31 +1573,32 @@
           ]
         }
       },
-      "id": "6e4a174c-5814-43fd-8448-c9caa744b1d1",
+      "id": "277f5993-9c0e-497c-84e4-bc57d2a11662",
       "name": "If CL Profile Exists",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        26240,
-        89904
+        33248,
+        103264
       ]
     },
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $json.text }}",
+        "text": "={{ $json.text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "d7cc3668-c0e4-479f-a269-c01b8b02d5b7",
+      "id": "f4e54b58-c1c5-4cdf-abf8-56267da8d203",
       "name": "Send CL Error Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26528,
-        90000
+        33536,
+        103360
       ],
       "webhookId": "284197df-db4f-4a91-9cc0-9ab94f67fc05",
       "credentials": {
@@ -1580,19 +1611,19 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "Please write a professional, highly-tailored cover letter based on the candidate's profile. Focus on the candidate's fit for the target role.\n\n[CRITICAL: HUMAN WRITING STYLE & TONE RULES]\n\n1. HARD CONSTRAINT ON EM DASHES AND DOUBLE HYPHENS:\n   - Your final output MUST contain absolutely no em dashes (\u2014), en dashes (\u2013), or double hyphens (--, ---) inside text sentences.\n   - Replace each one using a period (to start a new sentence), a comma (for tight asides), a colon (introducing explanation), or parentheses (for true asides), or restructure the sentence entirely.\n\n2. COPULA AVOIDANCE (USE SIMPLE \"IS/ARE/HAS/HAVE\"):\n   - Do not replace simple copulas with elaborate constructions like \"serves as\", \"stands as\", \"boasts\", \"features\", \"offers\", or \"marks\".\n   - Use simple verbs like \"is\", \"are\", \"has\", \"have\", or direct active verbs (e.g., instead of \"boasts 5 years of experience\", write \"has 5 years of experience\").\n\n3. BANNED \"AI VOCABULARY\" WORDS:\n   - Do not use high-frequency AI words. Banned list: align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate, intricacies, key (adjective), landscape (abstract), pivotal, showcase, tapestry, testament, underscore (verb), valuable, vibrant, seamlessly, cutting-edge, revolutionary, leverage, leveraging, transformative, meticulously, expertly, proven track record, elevate, multifaceted, catalyst, passionate.\n\n4. NO SUPERFICIAL \"-ING\" ENDINGS:\n   - Do not tack present participle clauses onto the end of sentences to pad the length (e.g., avoid: \"...highlighting X\", \"...ensuring Y\", \"...reflecting Z\", \"...fostering W\", \"...encompassing K\"). Write these as independent clauses or separate sentences.\n\n5. AVOID PERSUASIVE AND NOTABILITY PUFFERY:\n   - Do not add artificial statements about legacy, significance, or broader trends (e.g., \"marking a pivotal moment\", \"setting the stage for\", \"indelible mark\", \"testament to\", \"deeply rooted\"). Keep it completely factual, direct, and grounded.\n   - Do not use persuasive tropes like \"At its core\", \"In reality\", \"What really matters is\", \"Fundamentally\".\n\n6. STRUCTURAL RULES (RULE OF THREE, BOLDING, NEGATIVE PARALLELISMS):\n   - Avoid forcing bullet points or lists into rigid groups of three (the \"rule of three\" tell). Let items have natural lengths.\n   - Avoid boldface overuse inside text blocks.\n   - Do not use negative parallelisms like \"Not only... but also...\" or tailing negation fragments (e.g. \"no guessing\"). Write clean, direct active clauses.\n   - Avoid passive voice; use clear, direct active voice.\n\n7. NATURAL VOICE AND SOUL:\n   - Write with a grounded, calm, and understated voice. Avoid overly eager, sycophantic, or enthusiastic chatbot phrases (e.g., do not say \"Great! Here is X\", \"I hope this helps!\", \"Certainly!\").\n   - When writing cover letters, avoid generic, excited introductions. Start directly with a clear, calm statement of interest and alignment with the role.\n\nYour response must be a JSON object containing exactly the \"cover_letter\" key with the following structure:\n{\n  \"cover_letter\": {\n    \"subject_role\": \"string - target role name, e.g. UI/UX Designer & AI Tools Specialist\",\n    \"recipient\": \"string - e.g. Hiring Manager\",\n    \"paragraph_1\": \"string - introduction paragraph (3-4 sentences)\",\n    \"paragraph_2\": \"string - second paragraph highlighting key experiences (3-4 sentences)\",\n    \"bullet_points\": [\n      {\n        \"title\": \"string - brief highlight category (e.g., Full-Stack Development)\",\n        \"detail\": \"string - 1-2 sentence detailed accomplishment\"\n      }\n    ],\n    \"paragraph_3\": \"string - concluding paragraph and call to action\"\n  }\n}\n\nDo not include any explanation, markdown formatting, or backticks outside the JSON. Return only the raw JSON.",
+        "text": "Please write a professional, highly-tailored cover letter based on the candidate's profile. Focus on the candidate's fit for the target role.\n\n[CRITICAL: HUMAN WRITING STYLE & TONE RULES]\n\n1. HARD CONSTRAINT ON EM DASHES AND DOUBLE HYPHENS:\n   - Your final output MUST contain absolutely no em dashes (—), en dashes (–), or double hyphens (--, ---) inside text sentences.\n   - Replace each one using a period (to start a new sentence), a comma (for tight asides), a colon (introducing explanation), or parentheses (for true asides), or restructure the sentence entirely.\n\n2. COPULA AVOIDANCE (USE SIMPLE \"IS/ARE/HAS/HAVE\"):\n   - Do not replace simple copulas with elaborate constructions like \"serves as\", \"stands as\", \"boasts\", \"features\", \"offers\", or \"marks\".\n   - Use simple verbs like \"is\", \"are\", \"has\", \"have\", or direct active verbs (e.g., instead of \"boasts 5 years of experience\", write \"has 5 years of experience\").\n\n3. BANNED \"AI VOCABULARY\" WORDS:\n   - Do not use high-frequency AI words. Banned list: align with, crucial, delve, emphasizing, enduring, enhance, fostering, garner, highlight (verb), interplay, intricate, intricacies, key (adjective), landscape (abstract), pivotal, showcase, tapestry, testament, underscore (verb), valuable, vibrant, seamlessly, cutting-edge, revolutionary, leverage, leveraging, transformative, meticulously, expertly, proven track record, elevate, multifaceted, catalyst, passionate.\n\n4. NO SUPERFICIAL \"-ING\" ENDINGS:\n   - Do not tack present participle clauses onto the end of sentences to pad the length (e.g., avoid: \"...highlighting X\", \"...ensuring Y\", \"...reflecting Z\", \"...fostering W\", \"...encompassing K\"). Write these as independent clauses or separate sentences.\n\n5. AVOID PERSUASIVE AND NOTABILITY PUFFERY:\n   - Do not add artificial statements about legacy, significance, or broader trends (e.g., \"marking a pivotal moment\", \"setting the stage for\", \"indelible mark\", \"testament to\", \"deeply rooted\"). Keep it completely factual, direct, and grounded.\n   - Do not use persuasive tropes like \"At its core\", \"In reality\", \"What really matters is\", \"Fundamentally\".\n\n6. STRUCTURAL RULES (RULE OF THREE, BOLDING, NEGATIVE PARALLELISMS):\n   - Avoid forcing bullet points or lists into rigid groups of three (the \"rule of three\" tell). Let items have natural lengths.\n   - Avoid boldface overuse inside text blocks.\n   - Do not use negative parallelisms like \"Not only... but also...\" or tailing negation fragments (e.g. \"no guessing\"). Write clean, direct active clauses.\n   - Avoid passive voice; use clear, direct active voice.\n\n7. NATURAL VOICE AND SOUL:\n   - Write with a grounded, calm, and understated voice. Avoid overly eager, sycophantic, or enthusiastic chatbot phrases (e.g., do not say \"Great! Here is X\", \"I hope this helps!\", \"Certainly!\").\n   - When writing cover letters, avoid generic, excited introductions. Start directly with a clear, calm statement of interest and alignment with the role.\n\nYour response must be a JSON object containing exactly the \"cover_letter\" key with the following structure:\n{\n  \"cover_letter\": {\n    \"subject_role\": \"string - target role name, e.g. UI/UX Designer & AI Tools Specialist\",\n    \"recipient\": \"string - e.g. Hiring Manager\",\n    \"paragraph_1\": \"string - introduction paragraph (3-4 sentences)\",\n    \"paragraph_2\": \"string - second paragraph highlighting key experiences (3-4 sentences)\",\n    \"bullet_points\": [\n      {\n        \"title\": \"string - brief highlight category (e.g., Full-Stack Development)\",\n        \"detail\": \"string - 1-2 sentence detailed accomplishment\"\n      }\n    ],\n    \"paragraph_3\": \"string - concluding paragraph and call to action\"\n  }\n}\n\nDo not include any explanation, markdown formatting, or backticks outside the JSON. Return only the raw JSON.",
         "needsFallback": true,
         "options": {
-          "systemMessage": "={{ \"You are a professional cover letter writer. Write in a natural, understated, human-like voice, avoiding AI clich\u00e9s. Here is the candidate's profile: \" + JSON.stringify($('Check Cover Letter Profile').item.json.profile) + ($('Check Cover Letter Profile').item.json.jd ? \"\\n\\nTarget Job Description:\\n\" + $('Check Cover Letter Profile').item.json.jd : '') }}"
+          "systemMessage": "={{ \"You are a professional cover letter writer. Write in a natural, understated, human-like voice, avoiding AI clichés. Here is the candidate's profile: \" + JSON.stringify($('Check Cover Letter Profile').item.json.profile) + ($('Check Cover Letter Profile').item.json.jd ? \"\\n\\nTarget Job Description:\\n\" + $('Check Cover Letter Profile').item.json.jd : '') }}"
         }
       },
-      "id": "65905d99-ac26-4a60-986f-a508ffa581fa",
+      "id": "4b235cee-cbbc-4f5e-b00d-3db6108c17fd",
       "name": "AI Cover Letter Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        26816,
-        89808
+        33824,
+        103168
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -1603,13 +1634,13 @@
         "model": "qwen3-coder:480b",
         "options": {}
       },
-      "id": "b32c2173-33ee-4af0-b270-df3dc38a7183",
+      "id": "4e55d70c-0d1b-4f15-ae97-477f83204340",
       "name": "Ollama CL Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        26832,
-        90032
+        33840,
+        103392
       ],
       "credentials": {
         "openAiApi": {
@@ -1620,28 +1651,28 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $('Check Cover Letter Profile').item.json.profile;\nconst p = typeof raw === 'string' ? JSON.parse(raw) : raw;\nconst rawOutput = $input.item.json.output || '';\n\nfunction esc(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\textbackslash{}')\n    .replace(/([&%$#{}])/g, '\\\\$1')\n    .replace(/~/g, '\\\\textasciitilde{}')\n    .replace(/\\^/g, '\\\\textasciicircum{}')\n    .replace(/_/g, '\\\\_');\n}\n\n\n\nfunction extractUrls(text) {\n  if (!text) return [];\n  const regex = /(?:https?:\\/\\/|www\\.)[^\\s,\\|'\"]+|[a-zA-Z0-9.-]+\\.(?:com|app|net|io|me|dev|tech|co|org)(?:\\/[^\\s,\\|'\"]*)?/gi;\n  return text.match(regex) || [];\n}\n\nfunction getValidUrl(urlStr, displayStr) {\n  const urls = [];\n  if (urlStr) urls.push(...extractUrls(urlStr));\n  if (urls.length === 0 && displayStr) urls.push(...extractUrls(displayStr));\n  if (urls.length > 0) {\n      let u = urls[0];\n      if (!u.startsWith('http')) u = 'https://' + u;\n      return u;\n  }\n  return null;\n}\n\nconst c = p.contact || {};\n\nconst headerLeft = [];\nconst headerRight = [];\n\nheaderLeft.push(`{\\\\LARGE \\\\textbf{${esc(p.name)}}}`);\nif (p.tagline) {\n  headerLeft.push(`\\\\textit{${esc(p.tagline.substring(0, 100))}}`);\n}\n\nif (c.email) {\n  headerRight.push(`\\\\href{mailto:${url(c.email)}}{${esc(c.email)}}`);\n}\nif (c.phone) {\n  const cleanPhone = c.phone.replace(/[^+\\d]/g, '');\n  headerRight.push(`\\\\href{tel:${cleanPhone}}{${esc(c.phone)}}`);\n}\nif (c.linkedin_url || c.linkedin_display) {\n  const display = c.linkedin_display || 'LinkedIn';\n  const u = getValidUrl(c.linkedin_url, c.linkedin_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.github_url || c.github_display) {\n  const display = c.github_display || 'GitHub';\n  const u = getValidUrl(c.github_url, c.github_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.portfolio_url || c.portfolio_display) {\n  const display = c.portfolio_display || 'Portfolio';\n  const u = getValidUrl(c.portfolio_url, c.portfolio_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\n\nconst rows = Math.max(headerLeft.length, headerRight.length);\nlet headerBlock = '\\\\begin{tabular*}{\\\\textwidth}{l@{\\\\extracolsep{\\\\fill}}r}\\n';\nfor (let i = 0; i < rows; i++) {\n  const left = headerLeft[i] || '';\n  const right = headerRight[i] || '';\n  headerBlock += `  ${left} & ${right} \\\\\\\\\\n`;\n}\nheaderBlock += '\\\\end{tabular*}\\n';\n\n\nlet cl = {};\ntry {\n  const cleaned = rawOutput.replace(/\\`\\`\\`json|\\`\\`\\`/gi, '').trim();\n  const parsed = JSON.parse(cleaned);\n  cl = parsed.cover_letter || parsed;\n} catch (e) {\n  console.warn('Failed to parse cover letter JSON output, falling back to plain text parsing:', e);\n  cl = {\n    subject_role: p.tagline || 'Software Developer',\n    recipient: 'Hiring Manager',\n    paragraph_1: rawOutput || 'I am excited to apply for this position.',\n    paragraph_2: '',\n    bullet_points: [],\n    paragraph_3: ''\n  };\n}\n\nlet bulletsTex = '';\nif (cl.bullet_points && Array.isArray(cl.bullet_points)) {\n  cl.bullet_points.forEach(b => {\n    if (b && (b.title || b.detail)) {\n      bulletsTex += `    \\\\item \\\\textbf{${esc(b.title || '')}:} ${esc(b.detail || '')}\\n`;\n    }\n  });\n}\n\nconst tex = `\\\\documentclass[a4paper,11pt]{article}\n\\\\usepackage{latexsym}\n\\\\usepackage{ragged2e}\n\\\\usepackage[empty]{fullpage}\n\\\\usepackage{titlesec}\n\\\\usepackage{geometry}\n\\\\usepackage{verbatim}\n\\\\usepackage{enumitem}\n\\\\usepackage[hidelinks]{hyperref}\n\\\\usepackage{fancyhdr}\n\\\\usepackage{cfr-lm}\n\\\\usepackage[T1]{fontenc}\n\\\\pagestyle{fancy}\n\\\\fancyhf{}\n\\\\fancyfoot{}\n\\\\renewcommand{\\\\headrulewidth}{0pt}\n\\\\renewcommand{\\\\footrulewidth}{0pt}\n\\\\geometry{left=1.4cm, top=0.8cm, right=1.2cm, bottom=1cm}\n\\\\urlstyle{same}\n\\\\raggedright\n\\\\setlength{\\\\tabcolsep}{0in}\n\n\\\\begin{document}\n\\\\fontfamily{cmr}\\\\selectfont\n\n%--- RESUME-MATCHING HEADER ---\n${headerBlock}\n\n\\\\vspace{2.5em}\n\n\\\\hfill \\\\today\n\n\\\\vspace{1.5em}\n\n\\\\textbf{Subject: Application for ${esc(cl.subject_role || 'Software Developer')}}\n\n\\\\vspace{1em}\n\nDear ${esc(cl.recipient || 'Hiring Manager')},\n\n${esc(cl.paragraph_1 || '')}\n\n${cl.paragraph_2 ? '\\\\vspace{0.5em}\\n' + esc(cl.paragraph_2) : ''}\n\n${bulletsTex ? '\\\\vspace{0.5em}\\nKey highlights of my technical experience include:\\n\\n\\\\begin{itemize}[leftmargin=*, itemsep=3pt, topsep=4pt]\\n' + bulletsTex + '\\\\end{itemize}' : ''}\n\n${cl.paragraph_3 ? '\\\\vspace{0.5em}\\n' + esc(cl.paragraph_3) : ''}\n\n\\\\vspace{2em}\nSincerely,\\n\\n\\\\vspace{0.5em}\n${esc(p.name)}\n\n\\\\end{document}`;\n\nreturn [{ json: { success: true, cl_tex_b64: Buffer.from(tex).toString('base64') } }];"
+        "jsCode": "const raw = $('Check Cover Letter Profile').item.json.profile;\nconst p = typeof raw === 'string' ? JSON.parse(raw) : raw;\nconst rawOutput = $input.item.json.output || '';\n\nfunction esc(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\textbackslash{}')\n    .replace(/([&%$#{}])/g, '\\\\$1')\n    .replace(/~/g, '\\\\textasciitilde{}')\n    .replace(/\\^/g, '\\\\textasciicircum{}')\n    .replace(/_/g, '\\\\_');\n}\n\nfunction url(str) {\n  if (!str) return '';\n  // Only encode characters that would actually break LaTeX href parsing.\n  // Do NOT apply esc() to URLs — it breaks underscores and # anchors.\n  return String(str).replace(/%/g, '\\\\%').replace(/\\\\/g, '/');\n}\n\n\n\nfunction extractUrls(text) {\n  if (!text) return [];\n  const regex = /(?:https?:\\/\\/|www\\.)[^\\s,\\|'\"]+|[a-zA-Z0-9.-]+\\.(?:com|app|net|io|me|dev|tech|co|org)(?:\\/[^\\s,\\|'\"]*)?/gi;\n  return text.match(regex) || [];\n}\n\nfunction getValidUrl(urlStr, displayStr) {\n  const urls = [];\n  if (urlStr) urls.push(...extractUrls(urlStr));\n  if (urls.length === 0 && displayStr) urls.push(...extractUrls(displayStr));\n  if (urls.length > 0) {\n      let u = urls[0];\n      if (!u.startsWith('http')) u = 'https://' + u;\n      return u;\n  }\n  return null;\n}\n\nconst c = p.contact || {};\n\nconst headerLeft = [];\nconst headerRight = [];\n\nheaderLeft.push(`{\\\\LARGE \\\\textbf{${esc(p.name)}}}`);\nif (p.tagline) {\n  headerLeft.push(`\\\\textit{${esc(p.tagline.substring(0, 100))}}`);\n}\n\nif (c.email) {\n  headerRight.push(`\\\\href{mailto:${url(c.email)}}{${esc(c.email)}}`);\n}\nif (c.phone) {\n  const cleanPhone = c.phone.replace(/[^+\\d]/g, '');\n  headerRight.push(`\\\\href{tel:${cleanPhone}}{${esc(c.phone)}}`);\n}\nif (c.linkedin_url || c.linkedin_display) {\n  const display = c.linkedin_display || 'LinkedIn';\n  const u = getValidUrl(c.linkedin_url, c.linkedin_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.github_url || c.github_display) {\n  const display = c.github_display || 'GitHub';\n  const u = getValidUrl(c.github_url, c.github_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\nif (c.portfolio_url || c.portfolio_display) {\n  const display = c.portfolio_display || 'Portfolio';\n  const u = getValidUrl(c.portfolio_url, c.portfolio_display);\n  headerRight.push(u ? `\\\\href{${url(u)}}{${esc(display)}}` : esc(display));\n}\n\nconst rows = Math.max(headerLeft.length, headerRight.length);\nlet headerBlock = '\\\\begin{tabular*}{\\\\textwidth}{l@{\\\\extracolsep{\\\\fill}}r}\\n';\nfor (let i = 0; i < rows; i++) {\n  const left = headerLeft[i] || '';\n  const right = headerRight[i] || '';\n  headerBlock += `  ${left} & ${right} \\\\\\\\\\n`;\n}\nheaderBlock += '\\\\end{tabular*}\\n';\n\n\nlet cl = {};\ntry {\n  const cleaned = rawOutput.replace(/\\`\\`\\`json|\\`\\`\\`/gi, '').trim();\n  const parsed = JSON.parse(cleaned);\n  cl = parsed.cover_letter || parsed;\n} catch (e) {\n  console.warn('Failed to parse cover letter JSON output, falling back to plain text parsing:', e);\n  cl = {\n    subject_role: p.tagline || 'Software Developer',\n    recipient: 'Hiring Manager',\n    paragraph_1: rawOutput || 'I am excited to apply for this position.',\n    paragraph_2: '',\n    bullet_points: [],\n    paragraph_3: ''\n  };\n}\n\nlet bulletsTex = '';\nif (cl.bullet_points && Array.isArray(cl.bullet_points)) {\n  cl.bullet_points.forEach(b => {\n    if (b && (b.title || b.detail)) {\n      bulletsTex += `    \\\\item \\\\textbf{${esc(b.title || '')}:} ${esc(b.detail || '')}\\n`;\n    }\n  });\n}\n\nconst tex = `\\\\documentclass[a4paper,11pt]{article}\n\\\\usepackage{latexsym}\n\\\\usepackage{ragged2e}\n\\\\usepackage[empty]{fullpage}\n\\\\usepackage{titlesec}\n\\\\usepackage{geometry}\n\\\\usepackage{verbatim}\n\\\\usepackage{enumitem}\n\\\\usepackage[hidelinks]{hyperref}\n\\\\usepackage{fancyhdr}\n\\\\usepackage{cfr-lm}\n\\\\usepackage[T1]{fontenc}\n\\\\pagestyle{fancy}\n\\\\fancyhf{}\n\\\\fancyfoot{}\n\\\\renewcommand{\\\\headrulewidth}{0pt}\n\\\\renewcommand{\\\\footrulewidth}{0pt}\n\\\\geometry{left=1.4cm, top=0.8cm, right=1.2cm, bottom=1cm}\n\\\\urlstyle{same}\n\\\\raggedright\n\\\\setlength{\\\\tabcolsep}{0in}\n\n\\\\begin{document}\n\\\\fontfamily{cmr}\\\\selectfont\n\n%--- RESUME-MATCHING HEADER ---\n${headerBlock}\n\n\\\\vspace{2.5em}\n\n\\\\hfill \\\\today\n\n\\\\vspace{1.5em}\n\n\\\\textbf{Subject: Application for ${esc(cl.subject_role || 'Software Developer')}}\n\n\\\\vspace{1em}\n\nDear ${esc(cl.recipient || 'Hiring Manager')},\n\n${esc(cl.paragraph_1 || '')}\n\n${cl.paragraph_2 ? '\\\\vspace{0.5em}\\n' + esc(cl.paragraph_2) : ''}\n\n${bulletsTex ? '\\\\vspace{0.5em}\\nKey highlights of my technical experience include:\\n\\n\\\\begin{itemize}[leftmargin=*, itemsep=3pt, topsep=4pt]\\n' + bulletsTex + '\\\\end{itemize}' : ''}\n\n${cl.paragraph_3 ? '\\\\vspace{0.5em}\\n' + esc(cl.paragraph_3) : ''}\n\n\\\\vspace{2em}\nSincerely,\\n\\n\\\\vspace{0.5em}\n${esc(p.name)}\n\n\\\\end{document}`;\n\nreturn [{ json: { success: true, cl_tex_b64: Buffer.from(tex).toString('base64') } }];"
       },
-      "id": "5a9089e4-4f0e-43cb-9c26-8fe9f2b63766",
+      "id": "ff62661b-b801-4de5-b8b2-0877e6ed8f38",
       "name": "Generate LaTeX Cover Letter",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        27168,
-        89808
+        34176,
+        103168
       ]
     },
     {
       "parameters": {
         "command": "=echo \"{{ $json.cl_tex_b64 }}\" | base64 -d > /tmp/cl_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.tex\ncd /tmp\npdflatex -interaction=nonstopmode cl_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.tex > /tmp/cl_compile_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.log 2>&1\nif [ $? -eq 0 ] && [ -f cl_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.pdf ]; then\n  echo -n \"SUCCESS:\"\n  base64 -w 0 cl_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.pdf\n  rm -f cl_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.*\nelse\n  echo \"COMPILE_ERROR\"\n  cat /tmp/cl_compile_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.log\n  rm -f cl_{{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}.*\nfi"
       },
-      "id": "bbebaf41-5f56-4e4c-87b1-d5e6ac9b8c89",
+      "id": "a163cdaa-93f6-49ae-ace6-50de41cc17d8",
       "name": "Compile Cover Letter",
       "type": "n8n-nodes-base.ssh",
       "typeVersion": 1,
       "position": [
-        27520,
-        89808
+        34528,
+        103168
       ],
       "credentials": {
         "sshPassword": {
@@ -1662,13 +1693,13 @@
           ]
         }
       },
-      "id": "4c8a07a3-6013-46ea-aebd-f4ea362d2559",
+      "id": "3414ddcd-35bc-4512-9577-97a9c2f85e0c",
       "name": "If CL Compile Success",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        27920,
-        89808
+        34928,
+        103168
       ]
     },
     {
@@ -1677,16 +1708,17 @@
         "text": "Oops! I ran into an error while compiling your Cover Letter PDF. Try checking your profile details for formatting issues.",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "813ae415-12c6-45e2-983e-8fa4f0f50738",
+      "id": "8e0d6532-c190-4402-a97c-902233d9b2ba",
       "name": "Send CL Compile Error",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        28208,
-        89904
+        35216,
+        103264
       ],
       "webhookId": "681762b9-0696-4eae-8b5c-98d4743d50ce",
       "credentials": {
@@ -1700,13 +1732,13 @@
       "parameters": {
         "jsCode": "const stdout = $input.item.json.stdout || '';\nconst match = stdout.match(/SUCCESS:\\s*([A-Za-z0-9+/=\\s\\r\\n]+)/);\nconst b64 = match ? match[1].replace(/[\\s\\r\\n]/g, '') : '';\nconst chatId = ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id);\nreturn [{\n  json: { success: !!b64 },\n  binary: {\n    pdf_doc: {\n      data: b64,\n      mimeType: 'application/pdf',\n      fileName: `cover_letter_${chatId}.pdf`\n    }\n  }\n}];"
       },
-      "id": "a7665176-8c1c-41d5-a04e-7242c2b90765",
+      "id": "b9615bcb-cc49-45a1-9ac3-88d11286a23e",
       "name": "Decode CL PDF Binary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        28208,
-        89488
+        35216,
+        102848
       ]
     },
     {
@@ -1716,16 +1748,17 @@
         "binaryData": true,
         "binaryPropertyName": "pdf_doc",
         "additionalFields": {
-          "caption": "Here is your tailored cover letter!"
+          "caption": "Here is your tailored cover letter!",
+          "parse_mode": "HTML"
         }
       },
-      "id": "2a0ce7f4-ebd8-4b95-b8b1-4da020cead6f",
+      "id": "db5ecee0-d654-4574-a30d-02234506249c",
       "name": "Send CL PDF (Telegram)",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        28432,
-        89488
+        35440,
+        102848
       ],
       "webhookId": "d53fcf7a-fa23-465d-a986-390f05874262",
       "credentials": {
@@ -1741,16 +1774,17 @@
         "text": "Compiling your resume PDF. Please wait a moment...",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "ff377ca8-3daf-4538-a7ee-050ff26c6986",
+      "id": "3ab6c05a-0b32-429c-947f-0c2c81ccdc56",
       "name": "Send Resume Compile Wait Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        89104
+        32960,
+        102464
       ],
       "webhookId": "49d82bbe-e7b2-4dad-87fc-d9799487f88a",
       "credentials": {
@@ -1766,16 +1800,17 @@
         "text": "Analyzing the job description and tailoring your profile. This will take a few seconds...",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "b71b7534-cdfd-4566-820e-0c2eb0ee72f2",
+      "id": "0befb619-6d2d-47d0-8469-914129072aa1",
       "name": "Send Optimize Wait Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        89472
+        32960,
+        102832
       ],
       "webhookId": "be604e86-7f9a-483f-a54f-c68048a5336c",
       "credentials": {
@@ -1791,16 +1826,17 @@
         "text": "Drafting and compiling your tailored cover letter PDF. Please wait...",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "e05cdc9a-8156-48f6-a641-c048b26e56a8",
+      "id": "21d6c3df-cf3a-4d5f-96cb-9d0e4a84ad0b",
       "name": "Send CL Wait Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26528,
-        89808
+        33536,
+        103168
       ],
       "webhookId": "594eca53-6f4d-4c00-9966-363b51ca8642",
       "credentials": {
@@ -1821,31 +1857,32 @@
           ]
         }
       },
-      "id": "3405a751-e874-47af-9c2c-96c0337ecfd7",
+      "id": "515ffc85-5fcf-4439-a118-9b303a5278c2",
       "name": "Chat Profile Sufficient?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        29104,
-        88144
+        36112,
+        101504
       ]
     },
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $('Parse JSON').item.json.chat_reply }}",
+        "text": "={{ $('Parse JSON').item.json.chat_reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "c9b7ed87-1d7c-4763-995e-85c30408040c",
+      "id": "4d03d94a-742d-4c95-9c84-0ec35f7aba20",
       "name": "Telegram Chat Reply (No Buttons)",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        29328,
-        88544
+        36336,
+        101904
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -1858,19 +1895,20 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ (() => { const prompt = $('Assess Master Profile').item.json.profile_status.prompt; return prompt ? '\ud83d\udc4b Hi! ' + prompt : '\ud83d\udc4b Hi! I\\'m ready to help. Type /start to see what I can do.'; })() }}",
+        "text": "={{ (() => { const prompt = $('Assess Master Profile').item.json.profile_status.prompt; const res = prompt ? '👋 Hi! ' + prompt : '👋 Hi! I\\'m ready to help. Type /start to see what I can do.'; return res.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); })() }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "572a378b-2d50-4db5-8417-72ff5eddae22",
+      "id": "4040300c-a45e-4623-995c-ebed574e7603",
       "name": "Greeting Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        86992
+        32960,
+        100224
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -1883,19 +1921,20 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $('Assess Master Profile').item.json.profile_status.prompt || '\ud83d\udced Please upload your resume PDF or tell me about yourself to build your profile.' }}",
+        "text": "={{ ($('Assess Master Profile').item.json.profile_status.prompt || '📭 Please upload your resume PDF or tell me about yourself to build your profile.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "af634e24-4bf8-4b79-93cf-211619f9dfca",
+      "id": "2991f288-60d2-4e0c-8930-cd9a22e42dcd",
       "name": "Profile Incomplete Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        87376
+        32960,
+        100608
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -1920,13 +1959,13 @@
           ]
         }
       },
-      "id": "171ef539-b93d-4cd4-99bb-8089cf2c0dcb",
+      "id": "92dfad90-f5db-46ac-a087-0b66fd77a084",
       "name": "Supabase Fetch by Username",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        24544,
-        87952
+        31552,
+        101216
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1940,13 +1979,13 @@
       "parameters": {
         "jsCode": "const byId = $('Supabase Fetch by ID').first().json;\nconst byUsername = $('Supabase Fetch by Username').first().json;\n\nconst foundById = byId && byId.telegram_id;\nconst foundByUsername = byUsername && byUsername.telegram_id;\n\nconst found = foundById ? byId : (foundByUsername ? byUsername : {});\nreturn [{ json: found }];"
       },
-      "id": "6fda3f97-1f0f-4c61-a7c9-0c5ec8ab12e6",
+      "id": "b3f4b104-69fe-4b82-b0e3-797f6443ac66",
       "name": "Supabase Fetch",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        24768,
-        87952
+        31776,
+        101216
       ]
     },
     {
@@ -1964,13 +2003,13 @@
           ]
         }
       },
-      "id": "75a70f99-6778-46fb-b10d-7c4316cd16b2",
+      "id": "3f2a972d-003c-4f98-ac52-d4fb2b2f1820",
       "name": "Check Migration Needed",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        24992,
-        87952
+        32000,
+        101216
       ]
     },
     {
@@ -1995,13 +2034,13 @@
           ]
         }
       },
-      "id": "87fdb854-3173-4732-9603-eb29d7100399",
+      "id": "38cf4530-4dcd-4998-bca0-1a05cce18222",
       "name": "Supabase Migrate ID",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        25216,
-        88032
+        32224,
+        101296
       ],
       "credentials": {
         "supabaseApi": {
@@ -2013,19 +2052,20 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "Received your resume PDF! \ud83d\udcc4 I am now extracting, analyzing, and structuring your profile details. This will take a few seconds...",
+        "text": "Received your resume PDF! 📄 I am now extracting, analyzing, and structuring your profile details. This will take a few seconds...",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "e21c1656-e638-40e2-9b0f-4237a6bbdca2",
+      "id": "d63115e8-9329-4f19-a4e4-4be717a11d3b",
       "name": "Send PDF Wait Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26240,
-        88144
+        33248,
+        101376
       ],
       "webhookId": "594eca53-6f4d-4c00-9966-363b51ca8643",
       "credentials": {
@@ -2040,13 +2080,13 @@
         "model": "rnj-1:8b",
         "options": {}
       },
-      "id": "5ccb65c8-a9a4-46c1-8d04-7fc0ffd65f0b",
+      "id": "ccdacdca-0a46-4412-ac1e-7b2bf9580fb8",
       "name": "Classifier Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        27456,
-        88672
+        34464,
+        102032
       ],
       "credentials": {
         "openAiApi": {
@@ -2062,13 +2102,13 @@
         "needsFallback": true,
         "options": {}
       },
-      "id": "821a6dde-926f-4cdb-a02d-31e011a0d425",
+      "id": "49c1716c-33e6-4a66-8943-ba02e4f9bf3f",
       "name": "Intent Classifier",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        25888,
-        88608
+        32896,
+        101968
       ],
       "retryOnFail": true,
       "waitBetweenTries": 3000,
@@ -2076,15 +2116,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// \u2500\u2500 Heuristic-first intent classification \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Run a fast local check before trusting the LLM classifier output.\n// If the message clearly looks like a QUERY, short-circuit to QUERY.\n// If it clearly looks like an UPDATE, short-circuit to UPDATE.\n// Only fall back to the LLM's answer when neither heuristic matches.\n\nconst msg = ($('Telegram Trigger').first().json.message?.text || '').trim().toLowerCase();\n\nconst queryStarters = [\n  'what', 'which', 'who', 'where', 'when', 'how many', 'how much',\n  'do i have', 'did i', 'is my', 'are my', 'can you tell', 'show me',\n  'list my', 'what are', 'what is', 'what was', 'what were',\n  'tell me', 'give me', 'find my', 'check my', 'do i',\n];\n\nconst updateStarters = [\n  'add', 'update', 'change', 'set', 'remove', 'delete', 'fix', 'correct',\n  'edit', 'replace', 'my new', 'i have', 'i got', 'i just', 'i completed',\n  'i finished', 'i am working', 'i joined', 'i started', 'i built',\n  'i created', 'i made', 'i earned', 'i received', 'my current',\n];\n\nconst isLikelyQuery  = queryStarters.some(s  => msg.startsWith(s) || msg.includes(' ' + s + ' '));\nconst isLikelyUpdate = updateStarters.some(s => msg.startsWith(s));\n\n// Heuristic: QUERY wins if no update-starter detected; UPDATE wins if explicit update language\nlet heuristicIntent = null;\nif (isLikelyQuery && !isLikelyUpdate)  heuristicIntent = 'QUERY';\nif (isLikelyUpdate && !isLikelyQuery)  heuristicIntent = 'UPDATE';\n\n// Parse the LLM's output regardless (it's already been called upstream)\nlet rawText = $input.item.json.output || '';\nlet parsed = {};\ntry {\n  let cleaned = rawText.replace(/```json|```/gi, '').trim();\n  const jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) cleaned = jsonMatch[0];\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = { intent: 'UPDATE' };\n}\n\n// Apply heuristic override when confident\nif (heuristicIntent) {\n  parsed.intent = heuristicIntent;\n}\n\n// Sanitise: intent must be either QUERY or UPDATE\nif (!['QUERY', 'UPDATE'].includes(parsed.intent)) {\n  parsed.intent = 'UPDATE';\n}\n\nreturn [{ json: parsed }];"
+        "jsCode": "// ── Heuristic-first intent classification ─────────────────────────────────\n// Run a fast local check before trusting the LLM classifier output.\n// If the message clearly looks like a QUERY, short-circuit to QUERY.\n// If it clearly looks like an UPDATE, short-circuit to UPDATE.\n// Only fall back to the LLM's answer when neither heuristic matches.\n\nconst msg = ($('Telegram Trigger').first().json.message?.text || '').trim().toLowerCase();\n\nconst queryStarters = [\n  'what', 'which', 'who', 'where', 'when', 'how many', 'how much',\n  'do i have', 'did i', 'is my', 'are my', 'can you tell', 'show me',\n  'list my', 'what are', 'what is', 'what was', 'what were',\n  'tell me', 'give me', 'find my', 'check my', 'do i',\n];\n\nconst updateStarters = [\n  'add', 'update', 'change', 'set', 'remove', 'delete', 'fix', 'correct',\n  'edit', 'replace', 'my new', 'i have', 'i got', 'i just', 'i completed',\n  'i finished', 'i am working', 'i joined', 'i started', 'i built',\n  'i created', 'i made', 'i earned', 'i received', 'my current',\n];\n\nconst isLikelyQuery  = queryStarters.some(s  => msg.startsWith(s) || msg.includes(' ' + s + ' '));\nconst isLikelyUpdate = updateStarters.some(s => msg.startsWith(s));\n\n// Heuristic: QUERY wins if no update-starter detected; UPDATE wins if explicit update language\nlet heuristicIntent = null;\nif (isLikelyQuery && !isLikelyUpdate)  heuristicIntent = 'QUERY';\nif (isLikelyUpdate && !isLikelyQuery)  heuristicIntent = 'UPDATE';\n\n// Parse the LLM's output regardless (it's already been called upstream)\nlet rawText = $input.item.json.output || '';\nlet parsed = {};\ntry {\n  let cleaned = rawText.replace(/```json|```/gi, '').trim();\n  const jsonMatch = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) cleaned = jsonMatch[0];\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  parsed = { intent: 'UPDATE' };\n}\n\n// Apply heuristic override when confident\nif (heuristicIntent) {\n  parsed.intent = heuristicIntent;\n}\n\n// Sanitise: intent must be either QUERY or UPDATE\nif (!['QUERY', 'UPDATE'].includes(parsed.intent)) {\n  parsed.intent = 'UPDATE';\n}\n\nreturn [{ json: parsed }];"
       },
-      "id": "8bba6b9c-44d2-4558-bd29-b4a181a1484f",
+      "id": "5c89d104-4d5d-4789-ba03-c7b900402a54",
       "name": "Parse Intent",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        26240,
-        88608
+        33248,
+        101968
       ]
     },
     {
@@ -2098,13 +2138,13 @@
           ]
         }
       },
-      "id": "b27fb6f5-c8e0-42d3-9c7c-65fc9f355df4",
+      "id": "a7dab443-5605-40d2-bd16-10fc2004d45b",
       "name": "Is Query Intent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        26528,
-        88608
+        33536,
+        101968
       ]
     },
     {
@@ -2114,16 +2154,17 @@
         "additionalFields": {
           "appendAttribution": false,
           "disable_notification": true,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "e8cdf926-b11c-4aa8-b124-1c2a8deabd09",
+      "id": "a8bee7a6-0469-4cbf-8946-d5ed3a92f6c6",
       "name": "Send Query Wait Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        26880,
-        88544
+        33888,
+        101904
       ],
       "webhookId": "320a3c2c-185f-4ff2-b47d-ef92625ddc2f",
       "credentials": {
@@ -2142,13 +2183,13 @@
           "systemMessage": "=You are an expert AI Resume assistant. Your job is to answer the user's question about their professional profile using ONLY their saved master profile context.\n\n[USER PROFILE]\n{{ $json.profileContext }}\n\n[STRICT RULES]\n1. Answer the question directly, accurately, and concisely in a professional, human voice.\n2. Do not invent or assume any facts. Use ONLY the data shown above.\n3. If the information is not present in the profile above, say so clearly.\n\n[TONE]\n- Write with a grounded, calm, understated voice.\n- No em dashes, no en dashes, no double hyphens.\n- Use direct active voice."
         }
       },
-      "id": "cfb66048-3ecb-45e5-a047-793fdf226405",
+      "id": "542069aa-fc44-4de6-95ec-7d0eb5610c0b",
       "name": "Query Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        27456,
-        88448
+        34464,
+        101808
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -2157,19 +2198,20 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $json.output }}",
+        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "4b486a1f-eeba-42ca-ad3f-4f6e583455d1",
+      "id": "f2bc8e82-b0b0-494e-a4f0-7f817b18d858",
       "name": "Send Query Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        27920,
-        88544
+        34928,
+        101904
       ],
       "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
       "credentials": {
@@ -2184,13 +2226,13 @@
         "model": "rnj-1:8b",
         "options": {}
       },
-      "id": "c235ae62-57d9-43f6-b2a4-11dc2873caa9",
+      "id": "0a7fea5e-0bc2-4e93-a526-756fdfa7e340",
       "name": "Classifier Model1",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        25904,
-        88832
+        32912,
+        102192
       ],
       "credentials": {
         "openAiApi": {
@@ -2203,13 +2245,13 @@
       "parameters": {
         "jsCode": "const raw = $('Supabase Fetch').first().json.master_profile;\nif (!raw) return [{ json: { profileContext: 'NO PROFILE DATA FOUND. The user has not uploaded a resume yet.', userQuestion: $('Telegram Trigger').item.json.message.text } }];\n\nlet p;\ntry { p = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch(e) { return [{ json: { profileContext: 'ERROR: Could not parse profile data.', userQuestion: $('Telegram Trigger').item.json.message.text } }]; }\n\nlet ctx = '';\n\nif (p.name) ctx += 'Name: ' + p.name + '\\n';\nif (p.tagline) ctx += 'Tagline: ' + p.tagline + '\\n';\n\nif (p.contact) {\n  const c = p.contact;\n  if (c.email) ctx += 'Email: ' + c.email + '\\n';\n  if (c.phone) ctx += 'Phone: ' + c.phone + '\\n';\n  if (c.linkedin_url) ctx += 'LinkedIn: ' + (c.linkedin_display || c.linkedin_url) + '\\n';\n  if (c.github_url) ctx += 'GitHub: ' + (c.github_display || c.github_url) + '\\n';\n  if (c.portfolio_url) ctx += 'Portfolio: ' + (c.portfolio_display || c.portfolio_url) + '\\n';\n}\n\nif (p.summary) ctx += '\\nProfessional Summary: ' + p.summary + '\\n';\n\nif (p.education && p.education.length > 0) {\n  ctx += '\\nEducation:\\n';\n  p.education.forEach(e => {\n    ctx += '  - ' + (e.degree || '') + ' from ' + (e.institution || '');\n    if (e.score) ctx += ', Score: ' + e.score;\n    if (e.year) ctx += ', Year: ' + e.year;\n    ctx += '\\n';\n  });\n}\n\nif (p.work_experience && p.work_experience.length > 0) {\n  ctx += '\\nWork Experience:\\n';\n  p.work_experience.forEach(w => {\n    ctx += '  - ' + (w.title || '') + ' at ' + (w.company || '');\n    if (w.location) ctx += ', ' + w.location;\n    if (w.start_date) ctx += ' (' + w.start_date + ' to ' + (w.end_date || 'Present') + ')';\n    ctx += '\\n';\n    if (w.bullet_points && w.bullet_points.length > 0)\n      w.bullet_points.forEach(b => ctx += '    * ' + b + '\\n');\n  });\n}\n\nif (p.projects && p.projects.length > 0) {\n  ctx += '\\nProjects:\\n';\n  p.projects.forEach(proj => {\n    ctx += '  - ' + (proj.name || '');\n    if (proj.tech_stack) ctx += ' (' + proj.tech_stack + ')';\n    if (proj.duration) ctx += ' [' + proj.duration + ']';\n    ctx += '\\n';\n    if (proj.bullet_points && proj.bullet_points.length > 0)\n      proj.bullet_points.forEach(b => ctx += '    * ' + b + '\\n');\n  });\n}\n\nif (p.skills && p.skills.length > 0) {\n  ctx += '\\nSkills:\\n';\n  p.skills.forEach(s => {\n    const cat = s.category || s.name || 'General';\n    const items = Array.isArray(s.items) ? s.items.join(', ') : (s.items || '');\n    if (items) ctx += '  - ' + cat + ': ' + items + '\\n';\n  });\n}\n\nif (p.certifications && p.certifications.length > 0) {\n  ctx += '\\nCertifications:\\n';\n  p.certifications.forEach(cert => {\n    ctx += '  - ' + (cert.name || '') + ' by ' + (cert.issuer || '');\n    if (cert.year) ctx += ' (' + cert.year + ')';\n    ctx += '\\n';\n  });\n}\n\nreturn [{ json: { profileContext: ctx.trim(), userQuestion: $('Telegram Trigger').item.json.message.text } }];"
       },
-      "id": "79d01b4d-fde0-40eb-96e5-885145930475",
+      "id": "7d847931-64b4-4745-a9fe-ef7c5dd68817",
       "name": "Format Query Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        27168,
-        88544
+        34176,
+        101904
       ]
     },
     {
@@ -2218,16 +2260,17 @@
         "text": "Analyzing your profile against the job description. This will take a moment...",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "dacaa4d0-6934-4832-bbb3-b300a5e39aef",
+      "id": "25cafbb4-bd77-4c7a-8bc9-707b5ed62c77",
       "name": "Send Analyze Wait Msg",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        90304
+        32960,
+        103664
       ],
       "webhookId": "f1e2d3c4-b5a6-7890-fedc-ba9876543210",
       "credentials": {
@@ -2241,13 +2284,13 @@
       "parameters": {
         "jsCode": "const msg = $('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '');\nconst jd = msg.replace(/^\\/analyze\\s*/i, '').trim();\n\nif (!jd) {\n  return [{ json: {\n    profileText: '',\n    jdText: '',\n    error: 'NO_JD'\n  }}];\n}\n\nconst raw = $('Supabase Fetch').first().json.master_profile;\nif (!raw) {\n  return [{ json: {\n    profileText: '',\n    jdText: jd,\n    error: 'NO_PROFILE'\n  }}];\n}\n\nlet p;\ntry { p = typeof raw === 'string' ? JSON.parse(raw) : raw; }\ncatch(e) { return [{ json: { profileText: '', jdText: jd, error: 'PARSE_ERROR' } }]; }\n\n// Build a compact plain-text representation of the profile\nlet profile = '';\nif (p.name)    profile += 'Name: ' + p.name + '\\n';\nif (p.tagline) profile += 'Tagline: ' + p.tagline + '\\n';\nif (p.summary) profile += 'Summary: ' + p.summary + '\\n';\n\nif (p.skills && p.skills.length > 0) {\n  profile += '\\nSkills:\\n';\n  p.skills.forEach(s => {\n    const cat = s.category || s.name || 'General';\n    const items = Array.isArray(s.items) ? s.items.join(', ') : (s.items || '');\n    if (items) profile += '  - ' + cat + ': ' + items + '\\n';\n  });\n}\n\nif (p.work_experience && p.work_experience.length > 0) {\n  profile += '\\nWork Experience:\\n';\n  p.work_experience.forEach(w => {\n    profile += '  - ' + (w.title || '') + ' at ' + (w.company || '') + '\\n';\n    if (w.bullet_points && w.bullet_points.length > 0)\n      w.bullet_points.forEach(b => profile += '    * ' + b + '\\n');\n  });\n}\n\nif (p.projects && p.projects.length > 0) {\n  profile += '\\nProjects:\\n';\n  p.projects.forEach(proj => {\n    profile += '  - ' + (proj.name || '');\n    if (proj.tech_stack) profile += ' (' + proj.tech_stack + ')';\n    profile += '\\n';\n    if (proj.bullet_points && proj.bullet_points.length > 0)\n      proj.bullet_points.forEach(b => profile += '    * ' + b + '\\n');\n  });\n}\n\nif (p.certifications && p.certifications.length > 0) {\n  profile += '\\nCertifications:\\n';\n  p.certifications.forEach(c => {\n    profile += '  - ' + (c.name || '') + ' by ' + (c.issuer || '') + '\\n';\n  });\n}\n\nif (p.education && p.education.length > 0) {\n  profile += '\\nEducation:\\n';\n  p.education.forEach(e => {\n    profile += '  - ' + (e.degree || '') + ' from ' + (e.institution || '') + '\\n';\n  });\n}\n\nreturn [{ json: { profileText: profile.trim(), jdText: jd, error: null } }];"
       },
-      "id": "d9038402-1a12-48e0-bc63-4ad0b1cabb4f",
+      "id": "b56f317c-08d1-4aea-baf6-0999b6a6eb18",
       "name": "Format ATS Context",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        26240,
-        90304
+        33248,
+        103664
       ]
     },
     {
@@ -2256,16 +2299,16 @@
         "text": "={{ $json.error === 'NO_JD' ? 'No job description provided.' : ($json.error === 'NO_PROFILE' ? 'No profile found.' : 'Analyze the profile against the job description and return the ATS gap analysis.') }}",
         "needsFallback": true,
         "options": {
-          "systemMessage": "=EARLY EXIT RULES (check FIRST before doing any analysis):\n- If the user message is exactly 'No job description provided.' \u2192 reply ONLY: '\u26a0\ufe0f Please include a job description after /analyze. Example:\\n/analyze [paste full job description here]'\n- If the user message is exactly 'No profile found.' \u2192 reply ONLY: '\u26a0\ufe0f No profile found. Please upload your resume PDF first, then try /analyze again.'\n- For any other error message starting with 'Error:' \u2192 reply ONLY with a short apology and the error.\n\nYou are an expert ATS (Applicant Tracking System) analyst and career coach. You will receive a candidate's profile and a job description. Your job is to:\n\n1. Calculate an overall ATS match percentage (0-100%) based on keyword and skill alignment.\n2. List the hard/technical skills mentioned in the JD that are MISSING from the profile.\n3. List the soft skills or competencies mentioned in the JD that are MISSING from the profile.\n4. List the keywords and buzzwords from the JD that should appear in the resume.\n5. Give 3 to 5 specific, actionable recommendations to improve the match score.\n\n[CANDIDATE PROFILE]\n{{ $json.profileText }}\n\n[JOB DESCRIPTION]\n{{ $json.jdText }}\n\n[RULES]\n- Be direct, honest, and concise. No filler.\n- If the profile text is empty, say so.\n- Use plain text only. No JSON. No markdown headers with #.\n- Structure your response exactly like this:\n\nMatch Score: [X%]\n\nMissing Hard Skills:\n- [skill 1]\n- [skill 2]\n\nMissing Soft Skills / Competencies:\n- [skill 1]\n\nKeywords to Add:\n- [keyword 1]\n- [keyword 2]\n\nRecommendations:\n1. [recommendation 1]\n2. [recommendation 2]\n\n[TONE]\n- Direct, calm, professional voice.\n- No em dashes, no en dashes.\n- Short sentences.\n- Do not invent information not present in the profile or JD."
+          "systemMessage": "=EARLY EXIT RULES (check FIRST before doing any analysis):\n- If the user message is exactly 'No job description provided.' → reply ONLY: '⚠️ Please include a job description after /analyze. Example:\\n/analyze [paste full job description here]'\n- If the user message is exactly 'No profile found.' → reply ONLY: '⚠️ No profile found. Please upload your resume PDF first, then try /analyze again.'\n- For any other error message starting with 'Error:' → reply ONLY with a short apology and the error.\n\nYou are an expert ATS (Applicant Tracking System) analyst and career coach. You will receive a candidate's profile and a job description. Your job is to:\n\n1. Calculate an overall ATS match percentage (0-100%) based on keyword and skill alignment.\n2. List the hard/technical skills mentioned in the JD that are MISSING from the profile.\n3. List the soft skills or competencies mentioned in the JD that are MISSING from the profile.\n4. List the keywords and buzzwords from the JD that should appear in the resume.\n5. Give 3 to 5 specific, actionable recommendations to improve the match score.\n\n[CANDIDATE PROFILE]\n{{ $json.profileText }}\n\n[JOB DESCRIPTION]\n{{ $json.jdText }}\n\n[RULES]\n- Be direct, honest, and concise. No filler.\n- If the profile text is empty, say so.\n- Use plain text only. No JSON. No markdown headers with #.\n- Structure your response exactly like this:\n\nMatch Score: [X%]\n\nMissing Hard Skills:\n- [skill 1]\n- [skill 2]\n\nMissing Soft Skills / Competencies:\n- [skill 1]\n\nKeywords to Add:\n- [keyword 1]\n- [keyword 2]\n\nRecommendations:\n1. [recommendation 1]\n2. [recommendation 2]\n\n[TONE]\n- Direct, calm, professional voice.\n- No em dashes, no en dashes.\n- Short sentences.\n- Do not invent information not present in the profile or JD."
         }
       },
-      "id": "00c9c6f4-0ca6-4d80-b3e2-ab7515f3f13f",
+      "id": "2a3ed112-98d3-466b-be63-1cba5deae8a7",
       "name": "ATS Gap Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        26464,
-        90304
+        33472,
+        103664
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -2276,13 +2319,13 @@
         "model": "rnj-1:8b",
         "options": {}
       },
-      "id": "f81644a8-8fc6-4c40-85a2-099124e045fb",
+      "id": "e1f3ccc0-c595-410a-90b9-69d689225379",
       "name": "Ollama ATS Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        26480,
-        90528
+        33488,
+        103888
       ],
       "credentials": {
         "openAiApi": {
@@ -2294,19 +2337,20 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $json.output }}",
+        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "64c5da35-90c4-4b0b-a292-9b71dc641d81",
+      "id": "5449cb18-1d8e-41e4-9bc5-4a18d58c3b09",
       "name": "Send ATS Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26880,
-        90304
+        33888,
+        103664
       ],
       "webhookId": "e2d3c4b5-a6f7-8901-edcb-a98765432109",
       "credentials": {
@@ -2318,15 +2362,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// \u2500\u2500 Safe Profile Merge \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Guard against the AI returning a partial/wiped profile.\n// We deep-merge the AI's master_profile with what's actually in Supabase,\n// so no field can be silently erased by an incomplete LLM response.\n\nconst aiData = $input.item.json;\nconst aiProfile = aiData.master_profile;\n\n// Fetch existing profile from Supabase\nconst rawExisting = $('Supabase Fetch').first().json.master_profile;\nlet existing = {};\ntry {\n  existing = rawExisting\n    ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : rawExisting)\n    : {};\n} catch (e) {\n  existing = {};\n}\n\n// If AI returned no profile or an empty object, keep existing and bail early\nif (!aiProfile || typeof aiProfile !== 'object' || Object.keys(aiProfile).length === 0) {\n  return [{ json: { ...aiData, master_profile: existing } }];\n}\n\n// \u2500\u2500 Field-by-field merge \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst merged = JSON.parse(JSON.stringify(existing)); // deep clone of existing\n\n// Scalar fields: AI value wins only when it is a non-empty, non-whitespace string\nconst scalars = ['name', 'tagline', 'summary'];\nfor (const field of scalars) {\n  if (aiProfile[field] != null && String(aiProfile[field]).trim() !== '') {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Contact sub-fields: merge at the sub-field level\nif (aiProfile.contact && typeof aiProfile.contact === 'object') {\n  merged.contact = merged.contact || {};\n  for (const [key, val] of Object.entries(aiProfile.contact)) {\n    if (val != null && String(val).trim() !== '') {\n      merged.contact[key] = val;\n    }\n  }\n}\n\n// Array fields: AI array wins only when it contains at least one entry\n// (an empty array from the AI means \"I didn't touch this\", not \"delete it\")\nconst arrays = ['skills', 'work_experience', 'education', 'projects', 'certifications'];\nfor (const field of arrays) {\n  if (Array.isArray(aiProfile[field]) && aiProfile[field].length > 0) {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Pass through all other ai output fields unchanged (chat_reply, profile_updated, profile_status, etc.)\nreturn [{ json: { ...aiData, master_profile: merged } }];"
+        "jsCode": "// ── Safe Profile Merge ──────────────────────────────────────────────────────\n// Guard against the AI returning a partial/wiped profile.\n// We deep-merge the AI's master_profile with what's actually in Supabase,\n// so no field can be silently erased by an incomplete LLM response.\n\nconst aiData = $input.item.json;\nconst aiProfile = aiData.master_profile;\n\n// Fetch existing profile from Supabase\nconst rawExisting = $('Supabase Fetch').first().json.master_profile;\nlet existing = {};\ntry {\n  existing = rawExisting\n    ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : rawExisting)\n    : {};\n} catch (e) {\n  existing = {};\n}\n\n// If AI returned no profile or an empty object, keep existing and bail early\nif (!aiProfile || typeof aiProfile !== 'object' || Object.keys(aiProfile).length === 0) {\n  return [{ json: { ...aiData, master_profile: existing } }];\n}\n\n// ── Field-by-field merge ────────────────────────────────────────────────────\nconst merged = JSON.parse(JSON.stringify(existing)); // deep clone of existing\n\n// Scalar fields: AI value wins only when it is a non-empty, non-whitespace string\nconst scalars = ['name', 'tagline', 'summary'];\nfor (const field of scalars) {\n  if (aiProfile[field] != null && String(aiProfile[field]).trim() !== '') {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Contact sub-fields: merge at the sub-field level\nif (aiProfile.contact && typeof aiProfile.contact === 'object') {\n  merged.contact = merged.contact || {};\n  for (const [key, val] of Object.entries(aiProfile.contact)) {\n    if (val != null && String(val).trim() !== '') {\n      merged.contact[key] = val;\n    }\n  }\n}\n\n// Array fields: AI array wins only when it contains at least one entry\n// (an empty array from the AI means \"I didn't touch this\", not \"delete it\")\nconst arrays = ['skills', 'work_experience', 'education', 'projects', 'certifications'];\nfor (const field of arrays) {\n  if (Array.isArray(aiProfile[field]) && aiProfile[field].length > 0) {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Pass through all other ai output fields unchanged (chat_reply, profile_updated, profile_status, etc.)\nreturn [{ json: { ...aiData, master_profile: merged } }];"
       },
-      "id": "f98fd0ad-a479-4400-9525-31c10d5928cf",
+      "id": "ef2c7085-f7d3-44e5-9448-0aef0fe160b0",
       "name": "Safe Profile Merge",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        28208,
-        88144
+        35216,
+        101504
       ]
     },
     {
@@ -2340,31 +2384,32 @@
           ]
         }
       },
-      "id": "2d6e014e-0eb5-4b95-ab74-47bec5a46b83",
+      "id": "8570160f-c9c6-43ac-b723-7e291f0bc5d5",
       "name": "Has LaTeX Content?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        26528,
-        89104
+        33536,
+        102464
       ]
     },
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $json.text || '\ud83d\udced No profile data found to generate a PDF.' }}",
+        "text": "={{ ($json.text || '📭 No profile data found to generate a PDF.').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "a4666486-4195-44d0-bfcf-aed58cfe144b",
+      "id": "1c3841af-de71-47eb-a226-c5fe35f3b8ad",
       "name": "Send LaTeX Error Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26880,
-        89232
+        33888,
+        102592
       ],
       "webhookId": "f2e3d4c5-b6a7-8901-fedc-ba0987654321",
       "credentials": {
@@ -2380,16 +2425,17 @@
         "text": "Please send a text message or a PDF document. I cannot process photos, stickers, voice notes, or other media.",
         "additionalFields": {
           "appendAttribution": false,
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
         }
       },
-      "id": "f1ed4830-241b-4ad4-bd98-5b3d6a2e2746",
+      "id": "470c6679-fa94-4bce-a71d-30018c03e57d",
       "name": "Send Media Guard Reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        25952,
-        87568
+        32960,
+        100800
       ],
       "webhookId": "d4c5b6a7-f8e9-0123-dcba-987654321098",
       "credentials": {
@@ -2413,13 +2459,13 @@
           ]
         }
       },
-      "id": "c0983e24-0989-4d8b-88dd-d5cfcf762aa3",
+      "id": "ae372430-afcd-4cf3-8ce1-ec3014b6ee08",
       "name": "Supabase Clear Profile",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        25952,
-        87952
+        32960,
+        101184
       ],
       "credentials": {
         "supabaseApi": {
@@ -2431,18 +2477,19 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "\ud83d\uddd1\ufe0f Your profile has been completely cleared. Send me a new PDF or tell me about yourself to start fresh!",
+        "text": "🗑️ Your profile has been completely cleared. Send me a new PDF or tell me about yourself to start fresh!",
         "additionalFields": {
-          "appendAttribution": false
+          "appendAttribution": false,
+          "parse_mode": "HTML"
         }
       },
-      "id": "c04fda1e-5532-4db0-b5e1-a13f93ebf68d",
+      "id": "ab1377e1-1655-41e0-8479-a6183577283d",
       "name": "Send Telegram Clear Success",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.1,
       "position": [
-        26240,
-        87952
+        33248,
+        101184
       ],
       "webhookId": "39b080ba-2187-40c4-a3d2-88e49ee5bdf5",
       "credentials": {
@@ -2466,10 +2513,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        27520,
-        88272
+        34528,
+        101632
       ],
-      "id": "30688846-d771-4f95-b53f-acedae9884ea",
+      "id": "d5f0aabc-2203-48c2-a46f-cb6c92341b54",
       "name": "Cerebras Fallback",
       "credentials": {
         "openAiApi": {
@@ -2492,10 +2539,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        27584,
-        88672
+        34592,
+        102032
       ],
-      "id": "84a4860c-a0e9-475d-bb25-42ee2603a558",
+      "id": "8fe57b9b-8b63-4b9f-88df-706b5fb1e540",
       "name": "Cerebras Query Fallback",
       "credentials": {
         "openAiApi": {
@@ -2518,10 +2565,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        26032,
-        88832
+        33040,
+        102192
       ],
-      "id": "5eaf3001-e657-4aee-894f-fb856fb68815",
+      "id": "76e5d8cf-7d73-4756-a829-dcec64f26098",
       "name": "Cerebras Classifier Fallback",
       "credentials": {
         "openAiApi": {
@@ -2544,10 +2591,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        28000,
-        89104
+        35008,
+        102464
       ],
-      "id": "0e472cf9-f041-4b47-b900-424c78bddde7",
+      "id": "2aa2ec97-9336-4318-a30e-bb4cc3d01006",
       "name": "Cerebras LaTeX Fallback",
       "credentials": {
         "openAiApi": {
@@ -2570,10 +2617,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        26608,
-        89584
+        33616,
+        102944
       ],
-      "id": "60929923-b00c-410d-8d2d-e0b67d240e59",
+      "id": "f3b0b3d7-4b72-47aa-8b4c-5d893c00fe94",
       "name": "Cerebras JD Fallback",
       "credentials": {
         "openAiApi": {
@@ -2596,10 +2643,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        26960,
-        90032
+        33968,
+        103392
       ],
-      "id": "34549e63-042a-48a8-b361-e5b96997ae6a",
+      "id": "bb7cdf67-782a-4b79-a4ce-efa02b1d06f5",
       "name": "Cerebras CL Fallback",
       "credentials": {
         "openAiApi": {
@@ -2622,10 +2669,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        26608,
-        90528
+        33616,
+        103888
       ],
-      "id": "b7f62b50-8350-475c-adb5-8d63b2f167d9",
+      "id": "0950c712-e53f-4cc9-8ba5-600a7d6275a7",
       "name": "Cerebras ATS Fallback",
       "credentials": {
         "openAiApi": {
@@ -2831,6 +2878,13 @@
         [
           {
             "node": "Format PDF Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send PDF Error Message",
             "type": "main",
             "index": 0
           }
