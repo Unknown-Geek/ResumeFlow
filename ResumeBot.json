@@ -109,7 +109,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ (() => { const msg = $('Telegram Trigger').item.json.message?.text || ''; const text = msg.trim().toLowerCase(); if (!text) return false; const greetings = ['hi','hlo','oi','hoi','yo', 'hello', 'hey', 'hiya', 'good morning', 'good afternoon', 'good evening']; return greetings.some(g => text === g || text.startsWith(g + ' ')); })() }}",
+                    "leftValue": "={{ (() => { const msg = $('Telegram Trigger').first().json.message?.text || ''; const text = msg.trim().toLowerCase(); if (!text) return false; const greetings = ['hi','hlo','oi','hoi','yo', 'hello', 'hey', 'hiya', 'good morning', 'good afternoon', 'good evening']; return greetings.some(g => text === g || text.startsWith(g + ' ')); })() }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -133,7 +133,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ (() => { const t = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text; return t === '/start' || t === '/info'; })() }}",
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t === '/start' || t === '/info'; })() }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -157,7 +157,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ (() => { const msg = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : ($('Telegram Trigger').item.json.message?.text || ''); const text = msg.trim(); return !!text && text.startsWith('/') && text !== '/view' && text !== '/clear' && !$('Assess Master Profile').item.json.profile_status.isSufficient; })() }}",
+                    "leftValue": "={{ (() => { const msg = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')); const text = msg.trim().toLowerCase(); return !!text && text.startsWith('/') && text !== '/view' && text !== '/clear' && !$('Assess Master Profile').item.json.profile_status.isSufficient; })() }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -190,7 +190,7 @@
                     "id": "fix04-aaaa-1111-bbbb-2222ccccdddd"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.message.document ? true : false }}",
+                    "leftValue": "={{ $('Telegram Trigger').first().json.message?.document ? true : false }}",
                     "rightValue": false,
                     "operator": {
                       "type": "boolean",
@@ -199,7 +199,7 @@
                     "id": "fix04-eeee-3333-ffff-4444aaaabbbb"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? true : false }}",
+                    "leftValue": "={{ $('Telegram Trigger').first().json.callback_query ? true : false }}",
                     "rightValue": false,
                     "operator": {
                       "type": "boolean",
@@ -223,7 +223,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/view",
                     "operator": {
                       "type": "string",
@@ -247,7 +247,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ (() => { const t = $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text; return t === '/clear'; })() }}",
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t === '/clear'; })() }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -271,7 +271,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.message.document ? true : false }}",
+                    "leftValue": "={{ $('Telegram Trigger').first().json.message?.document ? true : false }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -295,7 +295,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.message.document ? true : false }}",
+                    "leftValue": "={{ $('Telegram Trigger').first().json.message?.document ? true : false }}",
                     "rightValue": false,
                     "operator": {
                       "type": "boolean",
@@ -304,7 +304,7 @@
                     "id": "22895ab4-8bad-464e-8d42-692854c6525d"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/view",
                     "operator": {
                       "type": "string",
@@ -313,7 +313,7 @@
                     "id": "cba85e23-8929-4422-a8db-f90f63e26af0"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/download",
                     "operator": {
                       "type": "string",
@@ -322,8 +322,8 @@
                     "id": "9e8d0735-ae9a-46a3-a865-d5e02786eb86"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
-                    "rightValue": "/viewOptimized",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
+                    "rightValue": "/viewoptimized",
                     "operator": {
                       "type": "string",
                       "operation": "notEquals"
@@ -331,8 +331,8 @@
                     "id": "44199f86-2947-4f6d-b86d-8b4fb3e897b6"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
-                    "rightValue": "/downloadOptimized",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
+                    "rightValue": "/downloadoptimized",
                     "operator": {
                       "type": "string",
                       "operation": "notEquals"
@@ -340,7 +340,7 @@
                     "id": "d8037150-22bf-46b2-9bfd-77675f44ab92"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/start",
                     "operator": {
                       "type": "string",
@@ -349,7 +349,7 @@
                     "id": "981e3c79-f92c-4775-8c89-5c2a197ee67b"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/optimize",
                     "operator": {
                       "type": "string",
@@ -358,7 +358,7 @@
                     "id": "4b657bfe-b368-4762-b662-bf152bc419a3"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/coverletter",
                     "operator": {
                       "type": "string",
@@ -367,7 +367,7 @@
                     "id": "cfa85e23-8929-4422-a8db-f90f63e26af1"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/analyze",
                     "operator": {
                       "type": "string",
@@ -376,7 +376,7 @@
                     "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
                   },
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/clear",
                     "operator": {
                       "type": "string",
@@ -385,7 +385,7 @@
                     "id": "clear-chat-exclusion-id"
                   },
                   {
-                    "leftValue": "={{ (() => { const msg = $('Telegram Trigger').item.json.message?.text || ''; const text = msg.trim().toLowerCase(); if (!text) return false; const greetings = ['hi','hlo','oi','hoi','yo', 'hello', 'hey', 'hiya', 'good morning', 'good afternoon', 'good evening']; return greetings.some(g => text === g || text.startsWith(g + ' ')); })() }}",
+                    "leftValue": "={{ (() => { const msg = $('Telegram Trigger').first().json.message?.text || ''; const text = msg.trim().toLowerCase(); if (!text) return false; const greetings = ['hi','hlo','oi','hoi','yo', 'hello', 'hey', 'hiya', 'good morning', 'good afternoon', 'good evening']; return greetings.some(g => text === g || text.startsWith(g + ' ')); })() }}",
                     "rightValue": false,
                     "operator": {
                       "type": "boolean",
@@ -409,7 +409,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/download",
                     "operator": {
                       "type": "string",
@@ -442,8 +442,8 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
-                    "rightValue": "/downloadOptimized",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
+                    "rightValue": "/downloadoptimized",
                     "operator": {
                       "type": "string",
                       "operation": "equals"
@@ -484,7 +484,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/optimize",
                     "operator": {
                       "type": "string",
@@ -517,7 +517,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ ( ($(\"Telegram Trigger\").item.json.callback_query ? $(\"Telegram Trigger\").item.json.callback_query.data : $(\"Telegram Trigger\").item.json.message.text) === '/viewOptimized' ) || ( ($(\"Telegram Trigger\").item.json.callback_query ? $(\"Telegram Trigger\").item.json.callback_query.data : $(\"Telegram Trigger\").item.json.message.text) === '/downloadOptimized' && !$(\"Supabase Fetch\").first().json.tailored_profile ) }}",
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t === '/viewoptimized' || (t === '/downloadoptimized' && !$('Supabase Fetch').first().json.tailored_profile); })() }}",
                     "rightValue": true,
                     "operator": {
                       "type": "boolean",
@@ -550,7 +550,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/coverletter",
                     "operator": {
                       "type": "string",
@@ -583,7 +583,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.data : $('Telegram Trigger').item.json.message.text }}",
+                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
                     "rightValue": "/analyze",
                     "operator": {
                       "type": "string",
