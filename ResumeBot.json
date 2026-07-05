@@ -484,11 +484,11 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
-                    "rightValue": "/optimize",
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t.startsWith('/optimize') && t.replace(/^\\/optimize\\s*/, '').length > 0; })() }}",
+                    "rightValue": true,
                     "operator": {
-                      "type": "string",
-                      "operation": "startsWith"
+                      "type": "boolean",
+                      "operation": "true"
                     },
                     "id": "1c8659fe-12a2-42c3-b3ac-9fa2eb0acae0"
                   },
@@ -583,11 +583,11 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase() }}",
-                    "rightValue": "/analyze",
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t.startsWith('/analyze') && t.replace(/^\\/analyze\\s*/, '').length > 0; })() }}",
+                    "rightValue": true,
                     "operator": {
-                      "type": "string",
-                      "operation": "startsWith"
+                      "type": "boolean",
+                      "operation": "true"
                     },
                     "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901"
                   },
@@ -605,6 +605,54 @@
               },
               "renameOutput": true,
               "outputKey": "analyze"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t === '/optimize'; })() }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    },
+                    "id": "e0b4b83a-12a2-42c3-b3ac-9fa2eb0acae2"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "optimizeNoJd"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ (() => { const t = ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.data : ($('Telegram Trigger').first().json.message?.text || '')).trim().toLowerCase(); return t === '/analyze'; })() }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    },
+                    "id": "c0b4b83a-e5f6-7890-abcd-ef1234567892"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "analyzeNoJd"
             }
           ]
         },
@@ -2362,7 +2410,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── Safe Profile Merge ──────────────────────────────────────────────────────\n// Guard against the AI returning a partial/wiped profile.\n// We deep-merge the AI's master_profile with what's actually in Supabase,\n// so no field can be silently erased by an incomplete LLM response.\n\nconst aiData = $input.item.json;\nconst aiProfile = aiData.master_profile;\n\n// Fetch existing profile from Supabase\nconst rawExisting = $('Supabase Fetch').first().json.master_profile;\nlet existing = {};\ntry {\n  existing = rawExisting\n    ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : rawExisting)\n    : {};\n} catch (e) {\n  existing = {};\n}\n\n// If AI returned no profile or an empty object, keep existing and bail early\nif (!aiProfile || typeof aiProfile !== 'object' || Object.keys(aiProfile).length === 0) {\n  return [{ json: { ...aiData, master_profile: existing } }];\n}\n\n// ── Field-by-field merge ────────────────────────────────────────────────────\nconst merged = JSON.parse(JSON.stringify(existing)); // deep clone of existing\n\n// Scalar fields: AI value wins only when it is a non-empty, non-whitespace string\nconst scalars = ['name', 'tagline', 'summary'];\nfor (const field of scalars) {\n  if (aiProfile[field] != null && String(aiProfile[field]).trim() !== '') {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Contact sub-fields: merge at the sub-field level\nif (aiProfile.contact && typeof aiProfile.contact === 'object') {\n  merged.contact = merged.contact || {};\n  for (const [key, val] of Object.entries(aiProfile.contact)) {\n    if (val != null && String(val).trim() !== '') {\n      merged.contact[key] = val;\n    }\n  }\n}\n\n// Array fields: AI array wins only when it contains at least one entry\n// (an empty array from the AI means \"I didn't touch this\", not \"delete it\")\nconst arrays = ['skills', 'work_experience', 'education', 'projects', 'certifications'];\nfor (const field of arrays) {\n  if (Array.isArray(aiProfile[field]) && aiProfile[field].length > 0) {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Pass through all other ai output fields unchanged (chat_reply, profile_updated, profile_status, etc.)\nreturn [{ json: { ...aiData, master_profile: merged } }];"
+        "jsCode": "// ── Safe Profile Merge ──────────────────────────────────────────────────────\n// Guard against the AI returning a partial/wiped profile.\n// We deep-merge the AI's master_profile with what's actually in Supabase,\n// so no field can be silently erased by an incomplete LLM response.\n\nconst aiData = $input.item.json;\nconst aiProfile = aiData.master_profile;\n\n// Fetch existing profile from Supabase\nconst rawExisting = $('Supabase Fetch').first().json.master_profile;\nlet existing = {};\ntry {\n  existing = rawExisting\n    ? (typeof rawExisting === 'string' ? JSON.parse(rawExisting) : rawExisting)\n    : {};\n} catch (e) {\n  existing = {};\n}\n\n// If AI returned no profile or an empty object, keep existing and bail early\nif (!aiProfile || typeof aiProfile !== 'object' || Object.keys(aiProfile).length === 0) {\n  return [{ json: { ...aiData, master_profile: existing } }];\n}\n\n// ── Field-by-field merge ────────────────────────────────────────────────────\nconst merged = JSON.parse(JSON.stringify(existing)); // deep clone of existing\n\n// Scalar fields: AI value wins only when it is a non-empty, non-whitespace string\nconst scalars = ['name', 'tagline', 'summary'];\nfor (const field of scalars) {\n  if (aiProfile[field] != null && String(aiProfile[field]).trim() !== '' && String(aiProfile[field]).trim() !== 'NO_PROFILE') {\n    merged[field] = aiProfile[field];\n  }\n}\n\n// Contact sub-fields: merge at the sub-field level\nif (aiProfile.contact && typeof aiProfile.contact === 'object') {\n  merged.contact = merged.contact || {};\n  for (const [key, val] of Object.entries(aiProfile.contact)) {\n    if (val != null && String(val).trim() !== '') {\n      merged.contact[key] = val;\n    }\n  }\n}\n\n// Array fields: merge items to prevent silent wipes when the LLM returns a partial list\nconst arrays = ['skills', 'work_experience', 'education', 'projects', 'certifications'];\nfor (const field of arrays) {\n  if (Array.isArray(aiProfile[field]) && aiProfile[field].length > 0) {\n    if (field === 'skills') {\n      const mergedSkills = [...(merged.skills || [])];\n      for (const newSkill of aiProfile.skills) {\n        const cat = (newSkill.category || newSkill.name || '').trim().toLowerCase();\n        const existingIdx = mergedSkills.findIndex(s => (s.category || s.name || '').trim().toLowerCase() === cat);\n        if (existingIdx > -1) {\n          const oldItems = String(mergedSkills[existingIdx].items || '').split(',').map(s => s.trim()).filter(Boolean);\n          const newItems = String(newSkill.items || '').split(',').map(s => s.trim()).filter(Boolean);\n          const union = Array.from(new Set([...oldItems, ...newItems]));\n          mergedSkills[existingIdx].items = union.join(', ');\n        } else {\n          mergedSkills.push(newSkill);\n        }\n      }\n      merged.skills = mergedSkills;\n    } else if (field === 'work_experience') {\n      const mergedExp = [...(merged.work_experience || [])];\n      for (const newExp of aiProfile.work_experience) {\n        const key = `${(newExp.company || '').trim()}|${(newExp.title || '').trim()}`.toLowerCase();\n        const existingIdx = mergedExp.findIndex(e => `${(e.company || '').trim()}|${(e.title || '').trim()}`.toLowerCase() === key);\n        if (existingIdx > -1) {\n          mergedExp[existingIdx] = { ...mergedExp[existingIdx], ...newExp };\n        } else {\n          mergedExp.push(newExp);\n        }\n      }\n      merged.work_experience = mergedExp;\n    } else if (field === 'education') {\n      const mergedEdu = [...(merged.education || [])];\n      for (const newEdu of aiProfile.education) {\n        const key = `${(newEdu.degree || '').trim()}|${(newEdu.institution || '').trim()}`.toLowerCase();\n        const existingIdx = mergedEdu.findIndex(e => `${(e.degree || '').trim()}|${(e.institution || '').trim()}`.toLowerCase() === key);\n        if (existingIdx > -1) {\n          mergedEdu[existingIdx] = { ...mergedEdu[existingIdx], ...newEdu };\n        } else {\n          mergedEdu.push(newEdu);\n        }\n      }\n      merged.education = mergedEdu;\n    } else if (field === 'projects') {\n      const mergedProj = [...(merged.projects || [])];\n      for (const newProj of aiProfile.projects) {\n        const key = (newProj.name || '').trim().toLowerCase();\n        const existingIdx = mergedProj.findIndex(p => (p.name || '').trim().toLowerCase() === key);\n        if (existingIdx > -1) {\n          mergedProj[existingIdx] = { ...mergedProj[existingIdx], ...newProj };\n        } else {\n          mergedProj.push(newProj);\n        }\n      }\n      merged.projects = mergedProj;\n    } else if (field === 'certifications') {\n      const mergedCert = [...(merged.certifications || [])];\n      for (const newCert of aiProfile.certifications) {\n        const key = `${(newCert.name || '').trim()}|${(newCert.issuer || '').trim()}`.toLowerCase();\n        const existingIdx = mergedCert.findIndex(c => `${(c.name || '').trim()}|${(c.issuer || '').trim()}`.toLowerCase() === key);\n        if (existingIdx > -1) {\n          mergedCert[existingIdx] = { ...mergedCert[existingIdx], ...newCert };\n        } else {\n          mergedCert.push(newCert);\n        }\n      }\n      merged.certifications = mergedCert;\n    }\n  }\n}\n\n// Pass through all other ai output fields unchanged (chat_reply, profile_updated, profile_status, etc.)\nreturn [{ json: { ...aiData, master_profile: merged } }];"
       },
       "id": "ef2c7085-f7d3-44e5-9448-0aef0fe160b0",
       "name": "Safe Profile Merge",
@@ -2706,6 +2754,56 @@
         33680,
         103664
       ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.message.chat.id : $('Telegram Trigger').first().json.message.chat.id) }}",
+        "text": "⚠️ Please paste the full job description directly after /optimize in one message. Example: /optimize paste JD here",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "e0b4b83a-12a2-42c3-b3ac-9fa2eb0acae1",
+      "name": "Send Optimize Warning",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        33248,
+        103200
+      ],
+      "webhookId": "4c259a21-b8ae-4725-bfd8-fad039f14906",
+      "credentials": {
+        "telegramApi": {
+          "id": "C4WFoCaBCTYvtSS5",
+          "name": "AI Agent Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.message.chat.id : $('Telegram Trigger').first().json.message.chat.id) }}",
+        "text": "⚠️ Please include a job description after /analyze. Example:\n/analyze [paste full job description here]",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "c0b4b83a-e5f6-7890-abcd-ef1234567891",
+      "name": "Send Analyze Warning",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        33248,
+        104000
+      ],
+      "webhookId": "e2d3c4b5-a6f7-8901-edcb-a98765432109",
+      "credentials": {
+        "telegramApi": {
+          "id": "C4WFoCaBCTYvtSS5",
+          "name": "AI Agent Bot"
+        }
+      }
     }
   ],
   "connections": {
@@ -2838,6 +2936,20 @@
         [
           {
             "node": "Send Analyze Wait Msg",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Optimize Warning",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Analyze Warning",
             "type": "main",
             "index": 0
           }
