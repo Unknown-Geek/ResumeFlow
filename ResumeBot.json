@@ -971,7 +971,7 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $('Parse JSON').item.json.chat_reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "text": "={{ $('Parse JSON').item.json.chat_reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/\\*(?!\\s)(.*?)(?<!\\s)\\*/g, '<i>$1</i>').replace(/_(?!\\s)(.*?)(?<!\\s)_/g, '<i>$1</i>').replace(/\\`([^\\`]+)\\`/g, '<code>$1</code>') }}",
         "replyMarkup": "inlineKeyboard",
         "inlineKeyboard": {
           "rows": [
@@ -1869,7 +1869,7 @@
     {
       "parameters": {
         "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $('Parse JSON').item.json.chat_reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "text": "={{ $('Parse JSON').item.json.chat_reply.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/\\*(?!\\s)(.*?)(?<!\\s)\\*/g, '<i>$1</i>').replace(/_(?!\\s)(.*?)(?<!\\s)_/g, '<i>$1</i>').replace(/\\`([^\\`]+)\\`/g, '<code>$1</code>') }}",
         "additionalFields": {
           "appendAttribution": false,
           "disable_web_page_preview": true,
@@ -2197,8 +2197,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "chatId": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.message.chat.id : $('Telegram Trigger').first().json.message.chat.id) }}",
+        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/\\*(?!\\s)(.*?)(?<!\\s)\\*/g, '<i>$1</i>').replace(/_(?!\\s)(.*?)(?<!\\s)_/g, '<i>$1</i>').replace(/\\`([^\\`]+)\\`/g, '<code>$1</code>') }}",
         "additionalFields": {
           "appendAttribution": false,
           "disable_web_page_preview": true,
@@ -2336,8 +2336,8 @@
     },
     {
       "parameters": {
-        "chatId": "={{ ($('Telegram Trigger').item.json.callback_query ? $('Telegram Trigger').item.json.callback_query.message.chat.id : $('Telegram Trigger').item.json.message.chat.id) }}",
-        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') }}",
+        "chatId": "={{ ($('Telegram Trigger').first().json.callback_query ? $('Telegram Trigger').first().json.callback_query.message.chat.id : $('Telegram Trigger').first().json.message.chat.id) }}",
+        "text": "={{ $json.output.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\*\\*(.*?)\\*\\*/g, '<b>$1</b>').replace(/\\*(?!\\s)(.*?)(?<!\\s)\\*/g, '<i>$1</i>').replace(/_(?!\\s)(.*?)(?<!\\s)_/g, '<i>$1</i>').replace(/\\`([^\\`]+)\\`/g, '<code>$1</code>') }}",
         "additionalFields": {
           "appendAttribution": false,
           "disable_web_page_preview": true,
@@ -2680,6 +2680,32 @@
           "name": "Cerebras API"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.output || '';\nif (output.length <= 4000) {\n  return [{ json: { output } }];\n}\n\nconst chunks = [];\nlet current = '';\nfor (const line of output.split('\\n')) {\n  if ((current + line + '\\n').length > 4000) {\n    if (current.trim()) chunks.push(current.trim());\n    current = line + '\\n';\n  } else {\n    current += line + '\\n';\n  }\n}\nif (current.trim()) chunks.push(current.trim());\n\nconst finalChunks = [];\nfor (let chunk of chunks) {\n  while (chunk.length > 4000) {\n    finalChunks.push(chunk.substring(0, 4000));\n    chunk = chunk.substring(4000);\n  }\n  if (chunk) finalChunks.push(chunk);\n}\n\nreturn finalChunks.map(text => ({ json: { output: text } }));"
+      },
+      "id": "9b8c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
+      "name": "Split Query Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        34688,
+        101856
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $input.item.json.output || '';\nif (output.length <= 4000) {\n  return [{ json: { output } }];\n}\n\nconst chunks = [];\nlet current = '';\nfor (const line of output.split('\\n')) {\n  if ((current + line + '\\n').length > 4000) {\n    if (current.trim()) chunks.push(current.trim());\n    current = line + '\\n';\n  } else {\n    current += line + '\\n';\n  }\n}\nif (current.trim()) chunks.push(current.trim());\n\nconst finalChunks = [];\nfor (let chunk of chunks) {\n  while (chunk.length > 4000) {\n    finalChunks.push(chunk.substring(0, 4000));\n    chunk = chunk.substring(4000);\n  }\n  if (chunk) finalChunks.push(chunk);\n}\n\nreturn finalChunks.map(text => ({ json: { output: text } }));"
+      },
+      "id": "8b7c6d5e-4f3a-2b1c-0d9e-8f7a6b5c4d3e",
+      "name": "Split ATS Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        33680,
+        103664
+      ]
     }
   ],
   "connections": {
@@ -3475,7 +3501,7 @@
       "main": [
         [
           {
-            "node": "Send Query Reply",
+            "node": "Split Query Reply",
             "type": "main",
             "index": 0
           }
@@ -3530,7 +3556,7 @@
       "main": [
         [
           {
-            "node": "Send ATS Reply",
+            "node": "Split ATS Reply",
             "type": "main",
             "index": 0
           }
@@ -3661,6 +3687,28 @@
             "node": "ATS Gap Agent",
             "type": "ai_languageModel",
             "index": 1
+          }
+        ]
+      ]
+    },
+    "Split Query Reply": {
+      "main": [
+        [
+          {
+            "node": "Send Query Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split ATS Reply": {
+      "main": [
+        [
+          {
+            "node": "Send ATS Reply",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
