@@ -1113,7 +1113,7 @@
     },
     {
       "parameters": {
-        "model": "qwen3-coder:480b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "057a2326-df6f-44a9-90f3-12f0028180ef",
@@ -1167,7 +1167,7 @@
     },
     {
       "parameters": {
-        "model": "qwen3-coder:480b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "bc92d912-6381-43f7-b651-44773d7a901d",
@@ -1527,7 +1527,7 @@
     },
     {
       "parameters": {
-        "model": "qwen3-coder:480b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "2b54a255-6b44-4e86-83ed-24ccbc72a192",
@@ -1706,7 +1706,7 @@
     },
     {
       "parameters": {
-        "model": "qwen3-coder:480b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "2b10d9d7-aa76-4687-bd70-a7c13cfff5ce",
