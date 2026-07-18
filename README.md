@@ -90,7 +90,7 @@ The bot is implemented as a single n8n workflow exported as `ResumeBot.json`. Th
 - **View Branch**: Formats and returns the master profile as Telegram-formatted text.
 
 ### AI Agents (Ollama)
-All AI inference runs locally via Ollama using the `deepseek-v4-flash` model served through an OpenAI-compatible API endpoint.
+All AI inference runs locally via Ollama using the `gpt-oss:120b` model served through an OpenAI-compatible API endpoint.
 
 - **Intent Classifier Agent**: Evaluates user messages to explicitly route between database updates ("UPDATE") and read-only profile questions ("QUERY").
 - **AI Agent** (main): Handles both PDF parsing and conversational updates. Given the current profile and the user's message, it returns a JSON object containing an updated `master_profile` and a natural language `chat_reply`.
@@ -219,7 +219,7 @@ Before setting up and importing this workflow, ensure the following are availabl
 - **n8n** (self-hosted or cloud) — version compatible with `typeVersion` 1.x nodes and the LangChain integration nodes
 - **Telegram Bot** — created via BotFather; you will need the bot token
 - **Supabase project** — with a `Profiles` table containing columns: `telegram_id` (text, primary key), `telegram_username` (text), `master_profile` (jsonb), `tailored_profile` (jsonb)
-- **Ollama** — running locally or on a server accessible from n8n, with the `deepseek-v4-flash` model pulled. Ollama must be accessible via an OpenAI-compatible API endpoint (default: `http://localhost:11434/v1`)
+- **Ollama** — running locally or on a server accessible from n8n, with the `gpt-oss:120b` model pulled. Ollama must be accessible via an OpenAI-compatible API endpoint (default: `http://localhost:11434/v1`)
 - **Remote Linux server with pdflatex** — accessible via SSH with password authentication. Must have `texlive-full` or equivalent packages installed, including `latexmk`, `pdflatex`, and all packages used in the template
 
 
@@ -249,7 +249,7 @@ ALTER TABLE "Profiles" ADD COLUMN telegram_username TEXT;
 Install Ollama on your server and pull the required model:
 
 ```bash
-ollama pull deepseek-v4-flash
+ollama pull gpt-oss:120b
 ```
 
 Ensure the Ollama API is accessible from your n8n instance. If Ollama and n8n are on different hosts, expose the API with:
