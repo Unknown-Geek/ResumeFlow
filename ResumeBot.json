@@ -2152,7 +2152,7 @@
     },
     {
       "parameters": {
-        "model": "rnj-1:8b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "3a26eb43-67b0-442f-ad14-0abdd03ab40a",
@@ -2298,7 +2298,7 @@
     },
     {
       "parameters": {
-        "model": "rnj-1:8b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "25272731-12b5-402c-b2b9-5d0db1110077",
@@ -2391,7 +2391,7 @@
     },
     {
       "parameters": {
-        "model": "rnj-1:8b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "f6075a73-273b-4ccf-b746-5d7a6ebffc9b",

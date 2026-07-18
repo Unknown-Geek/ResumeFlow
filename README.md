@@ -90,7 +90,7 @@ The bot is implemented as a single n8n workflow exported as `ResumeBot.json`. Th
 - **View Branch**: Formats and returns the master profile as Telegram-formatted text.
 
 ### AI Agents (Ollama)
-All AI inference runs locally via Ollama using the `deepseek-v4-flash` model served through an OpenAI-compatible API endpoint. (The Intent Classifier additionally utilizes `rnj-1:8b` for fast, lightweight classification).
+All AI inference runs locally via Ollama using the `deepseek-v4-flash` model served through an OpenAI-compatible API endpoint.
 
 - **Intent Classifier Agent**: Evaluates user messages to explicitly route between database updates ("UPDATE") and read-only profile questions ("QUERY").
 - **AI Agent** (main): Handles both PDF parsing and conversational updates. Given the current profile and the user's message, it returns a JSON object containing an updated `master_profile` and a natural language `chat_reply`.
