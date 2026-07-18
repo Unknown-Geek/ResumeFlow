@@ -1113,7 +1113,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "gpt-oss-120b",
         "options": {}
       },
       "id": "dac8dc70-2bbf-4994-bbd2-61ea9208d80d",
@@ -1126,8 +1126,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -1167,7 +1167,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "gpt-oss-120b",
         "options": {}
       },
       "id": "dc4ba0b0-3dcc-4a63-930c-0a3b884ea8d7",
@@ -1180,8 +1180,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -1527,7 +1527,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "gpt-oss-120b",
         "options": {}
       },
       "id": "fd5c521e-85dd-4255-8d65-93aaf9952260",
@@ -1540,8 +1540,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -1706,7 +1706,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "gpt-oss-120b",
         "options": {}
       },
       "id": "92bed544-e5c2-4b1c-9beb-1ec80728b755",
@@ -1719,8 +1719,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2152,7 +2152,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "6bcbf247-95e1-4c73-80f4-2071ca977be7",
@@ -2165,8 +2165,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2298,7 +2298,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "deepseek-v4-flash",
         "options": {}
       },
       "id": "1b170ae1-6c62-4017-842f-930eef22c8ee",
@@ -2311,8 +2311,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2391,7 +2391,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-oss:120b",
+        "model": "gpt-oss-120b",
         "options": {}
       },
       "id": "d749a910-b24e-48ce-831b-b7ffcdf0a612",
@@ -2404,8 +2404,8 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "ULmeiabvCrdrvhgq",
-          "name": "Ollama API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2578,9 +2578,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "gpt-oss-120b",
+          "value": "gemini-3.5-flash",
           "mode": "list",
-          "cachedResultName": "gpt-oss-120b"
+          "cachedResultName": "gemini-3.5-flash"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2595,8 +2595,8 @@
       "name": "Cerebras Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2604,9 +2604,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "zai-glm-4.7",
+          "value": "gemini-3.5-flash",
           "mode": "list",
-          "cachedResultName": "zai-glm-4.7"
+          "cachedResultName": "gemini-3.5-flash"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2621,8 +2621,8 @@
       "name": "Cerebras Query Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2630,9 +2630,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "zai-glm-4.7",
+          "value": "gemini-3.1-flash-lite",
           "mode": "list",
-          "cachedResultName": "zai-glm-4.7"
+          "cachedResultName": "gemini-3.1-flash-lite"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2647,8 +2647,8 @@
       "name": "Cerebras Classifier Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2656,9 +2656,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "zai-glm-4.7",
+          "value": "gemini-3.5-flash",
           "mode": "list",
-          "cachedResultName": "zai-glm-4.7"
+          "cachedResultName": "gemini-3.5-flash"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2673,8 +2673,8 @@
       "name": "Cerebras LaTeX Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2682,9 +2682,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "zai-glm-4.7",
+          "value": "gemini-3.5-flash",
           "mode": "list",
-          "cachedResultName": "zai-glm-4.7"
+          "cachedResultName": "gemini-3.5-flash"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2699,8 +2699,8 @@
       "name": "Cerebras JD Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2708,9 +2708,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "zai-glm-4.7",
+          "value": "gemini-3.5-flash",
           "mode": "list",
-          "cachedResultName": "zai-glm-4.7"
+          "cachedResultName": "gemini-3.5-flash"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2725,8 +2725,8 @@
       "name": "Cerebras CL Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },
@@ -2734,9 +2734,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "zai-glm-4.7",
+          "value": "gemini-3.5-flash",
           "mode": "list",
-          "cachedResultName": "zai-glm-4.7"
+          "cachedResultName": "gemini-3.5-flash"
         },
         "responsesApiEnabled": false,
         "options": {}
@@ -2751,8 +2751,8 @@
       "name": "Cerebras ATS Fallback",
       "credentials": {
         "openAiApi": {
-          "id": "rE0ktKj6dyd5ekSS",
-          "name": "Cerebras API"
+          "id": "GAEw9y4P0Qo9A0DE",
+          "name": "FreeLLM API"
         }
       }
     },

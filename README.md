@@ -90,7 +90,7 @@ The bot is implemented as a single n8n workflow exported as `ResumeBot.json`. Th
 - **View Branch**: Formats and returns the master profile as Telegram-formatted text.
 
 ### AI Agents (Ollama)
-All AI inference runs locally via Ollama using the `gpt-oss:120b` model served through an OpenAI-compatible API endpoint.
+All AI inference runs via FreeLLM API using the `gpt-oss-120b` model, with `gemini-3.5-flash` configured as the fallback. (The Intent Classifier additionally utilizes `deepseek-v4-flash` for fast classification, with `gemini-3.1-flash-lite` as its fallback).
 
 - **Intent Classifier Agent**: Evaluates user messages to explicitly route between database updates ("UPDATE") and read-only profile questions ("QUERY").
 - **AI Agent** (main): Handles both PDF parsing and conversational updates. Given the current profile and the user's message, it returns a JSON object containing an updated `master_profile` and a natural language `chat_reply`.
@@ -219,7 +219,7 @@ Before setting up and importing this workflow, ensure the following are availabl
 - **n8n** (self-hosted or cloud) — version compatible with `typeVersion` 1.x nodes and the LangChain integration nodes
 - **Telegram Bot** — created via BotFather; you will need the bot token
 - **Supabase project** — with a `Profiles` table containing columns: `telegram_id` (text, primary key), `telegram_username` (text), `master_profile` (jsonb), `tailored_profile` (jsonb)
-- **Ollama** — running locally or on a server accessible from n8n, with the `gpt-oss:120b` model pulled. Ollama must be accessible via an OpenAI-compatible API endpoint (default: `http://localhost:11434/v1`)
+- **FreeLLM API** — credentials configured in n8n (using ID `GAEw9y4P0Qo9A0DE`) supporting `gpt-oss-120b`, `deepseek-v4-flash`, `gemini-3.5-flash`, and `gemini-3.1-flash-lite`.
 - **Remote Linux server with pdflatex** — accessible via SSH with password authentication. Must have `texlive-full` or equivalent packages installed, including `latexmk`, `pdflatex`, and all packages used in the template
 
 
@@ -244,19 +244,14 @@ If you have an existing database, run this migration command to add the username
 ALTER TABLE "Profiles" ADD COLUMN telegram_username TEXT;
 ```
 
-### 2. Set Up Ollama
+### 2. Set Up FreeLLM API
 
-Install Ollama on your server and pull the required model:
+Configure the FreeLLM API credentials in n8n:
+- **Credential Type**: OpenAI API
+- **ID**: `GAEw9y4P0Qo9A0DE`
+- **Name**: `FreeLLM API`
 
-```bash
-ollama pull gpt-oss:120b
-```
-
-Ensure the Ollama API is accessible from your n8n instance. If Ollama and n8n are on different hosts, expose the API with:
-
-```bash
-OLLAMA_HOST=0.0.0.0 ollama serve
-```
+This credentials profile will route inference to the selected models (`gpt-oss-120b` for primary tasks, `deepseek-v4-flash` for fast intent classification, and Gemini models as fallbacks).
 
 ### 3. Set Up the PDF Compilation Server
 
