@@ -2630,9 +2630,9 @@
       "parameters": {
         "model": {
           "__rl": true,
-          "value": "gemini-3.1-flash-lite",
+          "value": "llama-3.1-8b-instant",
           "mode": "list",
-          "cachedResultName": "gemini-3.1-flash-lite"
+          "cachedResultName": "llama-3.1-8b-instant"
         },
         "responsesApiEnabled": false,
         "options": {}
