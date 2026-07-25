@@ -248,7 +248,7 @@ ALTER TABLE "Profiles" ADD COLUMN telegram_username TEXT;
 
 Configure the FreeLLM API credentials in n8n:
 - **Credential Type**: OpenAI API
-- **ID**: `GAEw9y4P0Qo9A0DE`
+- **ID**: `YOUR_OPENAI_CREDENTIAL_ID`
 - **Name**: `FreeLLM API`
 
 This credentials profile will route inference to the selected models (`gpt-oss-120b` for primary tasks, `deepseek-v4-flash` for fast intent classification, and Gemini models as fallbacks).
