@@ -1,4 +1,12 @@
 # ResumeFlow - Autonomous Agentic Resume Assistant
+
+[![Stars](https://img.shields.io/github/stars/Unknown-Geek/ResumeFlow?style=flat)](https://github.com/Unknown-Geek/ResumeFlow/stargazers)
+[![Forks](https://img.shields.io/github/forks/Unknown-Geek/ResumeFlow?style=flat)](https://github.com/Unknown-Geek/ResumeFlow/network/members)
+[![n8n](https://img.shields.io/badge/Workflow-n8n-FF6584.svg?logo=n8n&logoColor=white)](https://n8n.io/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase-3ECF8E.svg?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Telegram](https://img.shields.io/badge/Interface-Telegram-26A5E4.svg?logo=telegram&logoColor=white)](https://telegram.org/)
+[![LaTeX](https://img.shields.io/badge/Typesetting-LaTeX-008080.svg?logo=latex&logoColor=white)](https://www.latex-project.org/)
+
 <img width="2710" height="2170" alt="Frame 1321321610" src="https://github.com/user-attachments/assets/bc5a449f-7905-496b-9df3-00896ab5430b" />
 <img width="2710" height="2170" alt="Frame 1321321609" src="https://github.com/user-attachments/assets/fe89bb0a-832f-4993-abbe-6833361b5fd9" />
 
